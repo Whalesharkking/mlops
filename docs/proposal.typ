@@ -21,7 +21,7 @@
 
 = Problem statement
 
-The goal is to predict how much weight the monitored bee colonies ("Waagvölker") in the _Nordalpen_ region gain or lose each day, for each of the next 16 days. Nordalpen is a Central-Swiss pre-alpine zone covering roughly the cantons of Lucerne, Schwyz, Uri and Ob-/Nidwalden. The forecast is a series of 16 daily values (horizon $h = 1 … 16$ days) and is updated once a day, after the nightly scale upload.
+The goal is to predict how much weight the monitored bee colonies in the _Nordalpen_ region gain or lose each day, for each of the next 16 days. Nordalpen is a Central-Swiss pre-alpine zone covering roughly the cantons of Lucerne, Schwyz, Uri and Ob-/Nidwalden. The forecast is a series of 16 daily values (horizon $h = 1 … 16$ days) and is updated once a day, after the nightly scale upload.
 
 This daily weight change is measured in kilograms, after beekeeper actions (feeding, honey removal, adding boxes) are filtered out. A positive value means the colony collects more nectar than it eats, a negative value means it lives off its stores. The value is averaged over the roughly 372 scales in the region, so the forecast describes the regional nectar flow, not a single hive.
 
