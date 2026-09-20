@@ -33,7 +33,7 @@ Success criterion (metric: MAE, the mean absolute error in kg/day): the model sh
 
 I am an active beekeeper, so I know the problem first-hand and can judge whether the output is useful in the apiary.
 
-The idea is original and does not repeat an existing project. Forecasting the regional nectar flow from a live network of hive scales is not something I have seen done before. What makes it different is the data: a Swiss citizen-science network of hundreds of connected scales, combined with weather forecasts, used to predict a biological signal (nectar income) that depends on the weather but cannot be read directly from it.
+I have not come across a nectar-flow forecast built from a live network of hive scales, either in earlier course projects or elsewhere. What makes it different is the data: a Swiss citizen-science network of hundreds of connected scales, combined with weather forecasts, used to predict a biological signal (nectar income) that depends on the weather but cannot be read directly from it.
 
 The real question is not only whether the model beats a rolling average, but whether a 16-day weather forecast lets it beat what a beekeeper already knows from experience: the seasonal pattern that the climatology baseline captures.
 
