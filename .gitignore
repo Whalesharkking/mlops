@@ -1,2 +1,9 @@
 # Jetbrains IDEs
 .idea
+
+# Local working notes (not deliverables)
+docs/datasource-hivewatch.md
+docs/projekt-anforderungen.md
+
+# Rendered PDFs (produced and force-committed by CI, not by hand)
+docs/*.pdf
