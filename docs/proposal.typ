@@ -4,13 +4,13 @@
 #set par(justify: true)
 
 #align(center)[
-  #text(size: 18pt, weight: "bold")[Project Proposal - S&P 500 Realized Volatility Forecast]
+  #text(size: 18pt, weight: "bold")[Project Proposal - Titel]
   #v(0.3em)
   #text(size: 12pt)[MLOPS - HS26]
   #v(0.1em)
-  #text(size: 10pt)[Dominic Bieri]
+  #text(size: 10pt)[Elias Christen]
   #v(0.1em)
-  #text(size: 10pt)[#link("https://github.com/dominic-bieri/mlops")]
+  #text(size: 10pt)[#link("https://github.com/Whalesharkking/mlops")]
 ]
 
 #v(1em)
@@ -27,16 +27,16 @@
 
 = System design
 
+== FTI architecture
 
-
-== Core
-
-
+// FTI-Diagramm hier als Bild einbetten (nicht ASCII):
+// #figure(image("fti-architecture.png", width: 90%), caption: [FTI architecture])
 
 == Tech stack
 
-
+// Feature store, experiment tracking, orchestration, serving — je eine Zeile Begruendung.
 
 == Optional
 
-
+// Stretch-Layers (heavy orchestration, IaC, managed cloud extras, extra monitoring)
+// explizit als optional markieren; Core FTI zuerst.
