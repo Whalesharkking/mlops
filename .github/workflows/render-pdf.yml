@@ -1,0 +1,34 @@
+name: Render Typst PDF
+
+on:
+  push:
+    paths:
+      - "docs/**"
+      - ".github/workflows/render-pdf.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          lfs: true
+
+      - uses: typst-community/setup-typst@v5
+
+      - name: Compile *.typ files
+        run: |
+          find docs -type f -name '*.typ' -print0 | while IFS= read -r -d '' file; do
+            typst compile "$file" "${file%.typ}.pdf"
+          done
+
+      - name: Commit rendered PDFs
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/*.pdf
+          git diff --staged --quiet || git commit -m ":robot: render PDFs from Typst sources"
+          git push
