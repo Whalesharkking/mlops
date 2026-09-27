@@ -8,7 +8,7 @@
 #align(center)[
   #text(size: 18pt, weight: "bold")[Project Proposal: Regional Nectar-Flow Forecast]
   #v(0.2em)
-  #text(size: 12pt)[16-Day Hive-Weight Prediction for the Central-Swiss Pre-Alps]
+  #text(size: 12pt)[10-Day Hive-Weight Prediction for the Central-Swiss Pre-Alps]
   #v(0.3em)
   #text(size: 11pt)[I.BA_MLOPS · HS26]
   #v(0.1em)
@@ -21,70 +21,64 @@
 
 = Problem statement
 
-The goal is to predict how much weight the monitored bee colonies in the _Nordalpen_ region gain or lose each day, for each of the next 16 days. Nordalpen is a Central-Swiss pre-alpine zone covering roughly the cantons of Lucerne, Schwyz, Uri and Ob-/Nidwalden. The forecast is a series of 16 daily values (horizon $h = 1 … 16$ days) and is updated once a day, after the nightly scale upload.
+The goal is to predict how much weight the monitored bee colonies in the _Nordalpen_ region gain or lose each day, for today and the following nine days. Nordalpen is a Central-Swiss pre-alpine zone covering roughly the cantons of Lucerne, Schwyz, Uri and Ob-/Nidwalden. The forecast is a series of 10 daily values (horizon $h = 1 … 10$ days) and is refreshed every morning, once the nightly scale upload and the new weather forecast are in.
 
-This daily weight change is measured in kilograms, after beekeeper actions (feeding, honey removal, adding boxes) are filtered out. A positive value means the colony collects more nectar than it eats, a negative value means it lives off its stores. The value is averaged over the roughly 372 scales in the region, so the forecast describes the regional nectar flow, not a single hive.
+The daily weight change is measured in kilograms, after beekeeper actions (feeding, honey removal, adding boxes) are filtered out. A positive value means the colonies collect more nectar than they eat, a negative value means they live off their stores. It is averaged over the roughly 372 scales in the region, so the forecast describes the regional nectar flow, not a single hive. This helps beekeepers decide when to harvest, when to feed before a treatment, and when a nectar gap ("Trachtlücke") or a strong flow is coming.
 
-This helps beekeepers plan ahead: when to harvest (once little new nectar is expected), when to feed before a treatment, whether colonies might run low on winter stores, and when a nectar gap ("Trachtlücke") or a strong flow is coming.
-
-Success criterion (metric: MAE, the mean absolute error in kg/day): the model should beat a persistence baseline (tomorrow is like today) by at least 10 %, and reach or beat a seasonal-climatology baseline (the typical net change for that day of the year). The biggest gains are expected in the first week, where the weather forecast is still reliable. It is tested on unseen data from 2025 to today.
+Success criterion (MAE in kg/day, reported per horizon): the model is compared with two simple baselines. _Persistence_ assumes every coming day repeats the last complete day. _Climatology_ predicts the usual change for that date, averaged over 2019 to 2023 (±7 days). On the 2026 data persistence wins for today (MAE 0.24 vs. 0.32) but falls to 0.45 at day 10, while climatology stays at 0.32. The model must therefore beat the better of the two by at least 10 % for $h = 1 … 5$ and at least match it for $h = 6 … 10$.
 
 = Originality & motivation
 
-I am an active beekeeper, so I know the problem first-hand and can judge whether the output is useful in the apiary.
-
-I have not come across a nectar-flow forecast built from a live network of hive scales, either in earlier course projects or elsewhere. What makes it different is the data: a Swiss citizen-science network of hundreds of connected scales, combined with weather forecasts, used to predict a biological signal (nectar income) that depends on the weather but cannot be read directly from it.
-
-The real question is not only whether the model beats a rolling average, but whether a 16-day weather forecast lets it beat what a beekeeper already knows from experience: the seasonal pattern that the climatology baseline captures.
+I am an active beekeeper, so I know the problem first-hand and can judge whether the output is useful in the apiary. I checked the HSLU projects on mlops-lab.ch and the KTH ID2223 lists. The closest are a pollen-concentration forecast and a bark-beetle outbreak predictor, and none uses hive-scale data. What makes it different is the data: a Swiss citizen-science network of hundreds of connected scales, combined with archived weather forecasts. They predict nectar income, which depends on the weather but cannot be read from it. The real question is whether a weather forecast lets the model beat what a beekeeper already knows from experience, which is exactly what the climatology baseline captures.
 
 = Data source & features
 
-There are two live sources, both public APIs, with no scraping. The hive data comes from the HiveWatch / BienenSchweiz Waagvölker network. Its endpoint `region/{id}/averages` returns the intervention-filtered `ext_weight` series (the regional average hive weight), going back to 2019 at roughly hourly resolution and updated every night. Access needs only a fixed public request header, with no key and no login. This gives about seven years of history today, and it grows by one day every day. The weather comes from Open-Meteo, whose free API gives both a 16-day forecast and a historical archive back to 2019 for the centre of the region, again with no key. If the feed ever changes, a fallback source (another open hive-scale network, or a climatology-only model) is kept ready.
+*Hive data.* The data comes from the HiveWatch / BienenSchweiz network behind the public scale map on bienen.ch. Its JSON endpoint `region/11/averages` returns the intervention-filtered weight series (`ext_weight`) of the region, hourly since 2019 (about 65'000 points today), growing by one day every night. It needs no key, is polled once a day and credited. Fallbacks: the network's own daily-delta endpoint (`midnightvalues`) as a second access path, and the open Hiveeyes scale network as an alternative provider.
 
-The label (what the model predicts) is the hive's net weight change on a day, in kilograms, and there is one value for each of the next 16 days. It is computed from the weight series alone: keep one weight per day and subtract consecutive days. Because it never uses the weather features, the model cannot read the answer off a feature and must learn the real link between weather and nectar.
+*Weather data.* The forecasts come from the Open-Meteo Single Runs API. It keeps every past run of the ECMWF IFS HRES model (10 days ahead) since 14 March 2024, about 925 runs so far. Each morning the pipeline takes the 00 UTC run for four towns (Lucerne, Schwyz, Altdorf, Sarnen), averages them and turns the hourly values into daily values. Each row is stored with two dates: the day the forecast was made and the day it is for. So the model always learns from real forecasts, never from the weather that actually happened, and the backfill uses the same code as the daily run. Fallback: the Open-Meteo Previous Runs API (same model, but only 7 days ahead, climatology after that).
 
-The features come in three groups. First, the weather forecast for each target day (max and min temperature, total precipitation, shortwave radiation, and maximum wind), always taken from the forecast available at $t_0$ and never from the weather that actually happened. Second, the recent weight momentum: the net weight change over the last 1, 3, 7 and 14 days. Third, calendar features (day of the year as sine and cosine, and the month) that encode the season. All rolling windows look only backwards. Because the scale feed is not exactly 24 points per day, the series is placed on a fixed daily grid before any lag is computed, so a "1-day" lag is always a real day, not just a number of rows.
+*Label.* The net weight change of one day: the weight at midnight after the day minus the weight at midnight before it. At midnight all bees are home, and the result matches the daily changes HiveWatch publishes itself (within 0.004 kg). Days without a midnight value stay empty and are not interpolated. Because scales can upload late, a label counts as final only after two days. The label comes from the scale data alone and cannot be derived from any feature.
 
-For evaluation, the model is trained on the full 2019 to 2024 history (six seasons) and tested on 2025 to today, kept in time order, with a 16-day gap so the training and test label windows do not overlap. This is a regression task, so there is no rare class to handle.
+*Features.* There is one row per forecast day $t_0$ and horizon $h$, and all features are batch features. The weather forecast for the target day gives max and min temperature, precipitation, shortwave radiation and max wind. The weight momentum is the net change over the last 1, 3, 7 and 14 days before $t_0$, on a fixed daily grid so a 1-day lag is always a real day. The climatology value of the target day brings the 2019 to 2023 history into the model. The last features are the day of year (as sine and cosine) and $h$ itself.
+
+*Split and leakage.* Training uses forecast days from 14 March 2024 to 22 December 2025, so no training target falls into 2026. The test set is the unseen 2026 season (1 January to today), reported overall, per $h$ and for the flow season April to July. The climatology uses only 2019 to 2023, so it contains no training or test year. This is a regression task, so there is no rare class.
 
 = System design
 
-The system follows the feature, training and inference (FTI) split shown below.
+All three pipelines are batch jobs. The model predicts in advance (offline or batch prediction), and the UI only shows the stored forecasts (request-response). Streaming would add no value, because the data arrives once a night.
 
-// --- FTI diagram (editable Mermaid source, rendered natively by merman) ----
 #figure(
   align(center, mermaid("
 flowchart LR
   subgraph src[Live data]
-    H[HiveWatch API<br/>weight, daily]
-    O[Open-Meteo<br/>16-day forecast + archive]
+    H[HiveWatch API<br/>weight, nightly]
+    O[Open-Meteo<br/>ECMWF, 10 days]
   end
   H --> FP
   O --> FP
-  FP[Feature pipeline<br/>GitHub Actions] -->|write| FS[(Feature Store<br/>Parquet · HF Hub)]
-  FS -->|read| TP[Training pipeline<br/>LightGBM]
-  TP -->|register| MR[(Model Registry<br/>W&B)]
-  MR -->|load best| IP[Inference pipeline<br/>daily / on-demand]
-  FS -.->|features at inference| IP
-  IP --> UI[HF Spaces · Gradio<br/>16-day forecast]
+  FP[Feature pipeline<br/>daily + backfill<br/>GitHub Actions] -->|features + labels| FS[(Feature Store<br/>Parquet · HF Hub)]
+  FS -->|read| TP[Training pipeline<br/>weekly, LightGBM]
+  TP -->|challenger| MR[(Model Registry<br/>W&B)]
+  MR -->|@champion| IP[Inference pipeline<br/>daily batch]
+  FS -.->|features at t0| IP
+  IP -->|stored| UI[Gradio UI<br/>HF Spaces]
   ")),
 )
-// --------------------------------------------------------------------------
 
 == Core
 
-The feature pipeline runs once a day. It fetches the new HiveWatch weight values and the Open-Meteo forecast, computes the features, and adds them to the feature store. A separate backfill run loads the full 2019-to-today history one time. The training pipeline retrains the model from scratch on a fixed schedule (for example weekly), so it always learns from the latest data. Each run trains a gradient-boosted-tree model (LightGBM) that predicts all 16 horizons, compares it against the persistence and climatology baselines, and registers the best version. The inference pipeline loads the latest registered model and shows the 16-day forecast next to the two baselines, either on a daily schedule or on demand from the UI.
+The *feature pipeline* runs every morning after the 00 UTC weather run is out and writes features and labels to the feature store. A backfill run fills the history from March 2024 with the same code. The *training pipeline* retrains a LightGBM model (fast on small tabular data, no GPU) from scratch once a week on all rows with a final label (automated stateless retraining on natural labels). Each new model is registered as a challenger with its Git commit and dataset version. It becomes `champion` only if it beats the current champion and both baselines on the last eight weeks of final labels, which it did not see in training. The *inference pipeline* loads `@champion` and stores the 10-day forecast next to the baselines for the UI.
 
 == Tech stack
 
-/ HuggingFace Hub: keeps the versioned daily features as Parquet (a "poor man's feature store"), read by both the training and inference pipeline, free and in the same ecosystem as the UI
-/ Weights & Biases: records every training run with its settings and metrics and keeps the versioned models in its model registry, a free cloud with no server to run
-/ GitHub Actions: runs the daily feature pipeline and the weekly retraining on a schedule, plus a manual backfill trigger
-/ HuggingFace Spaces (Gradio): serves the 16-day forecast next to the baselines and shows the current model version, a free one-push cloud deployment (the required cloud deploy)
-/ Docker with pinned dependencies: reproducible runs on the local machine, in CI and on the Space
+/ HuggingFace Hub: versioned Parquet as a "poor man's feature store", free and next to the UI
+/ Weights & Biases: experiment tracking and model registry with aliases, free cloud, no server to run
+/ GitHub Actions: free cron scheduler next to the code, runs the daily, weekly and backfill jobs
+/ HuggingFace Spaces (Gradio): serves the forecast and the model version, the required cloud deployment
+/ Docker with pinned dependencies: reproducible runs locally, in CI and on the Space
 
-Only two secrets are needed (the HuggingFace and W&B tokens), kept in GitHub Secrets. The data sources themselves need none. The GitHub repository is public.
+Only two secrets are needed (HuggingFace and W&B tokens), kept in GitHub Secrets. The repository is public.
 
 == Optional
 
-Marked optional, only if time allows: mirroring the deployment to GCP Cloud Run / GCS with the student credits, a data-drift check on the weight and weather distributions, per-colony forecasts, and a nectar-gap classifier.
+Only if time allows: a monitoring job that computes the live MAE from stored forecasts and late labels, a drift check on weight and weather, retraining when the live MAE rises, a 16-day horizon from the 2027 season (GFS runs), and a mirror on GCP Cloud Run.
