@@ -4,6 +4,26 @@
 # Local working notes (not deliverables)
 docs/datasource-hivewatch.md
 docs/projekt-anforderungen.md
+reviews/
+unterlagen/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# Local data, models and run artifacts (live in HF Hub / W&B, not in Git)
+data/
+models/
+wandb/
 
 # Rendered PDFs (produced and force-committed by CI, not by hand)
 docs/*.pdf
