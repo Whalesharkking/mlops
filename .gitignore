@@ -24,6 +24,10 @@ __pycache__/
 data/
 models/
 wandb/
+mlruns/
+*.pkl
+*.joblib
+*.onnx
 
 # Rendered PDFs (produced and force-committed by CI, not by hand)
 docs/*.pdf

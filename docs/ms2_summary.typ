@@ -8,71 +8,86 @@
   box(inset: (x: 3pt, y: 1pt), radius: 2pt, stroke: 0.5pt + c, text(fill: c, size: 9pt, weight: "bold")[#s])
 }
 
-#let entry(label, title, st, body) = block(spacing: 0.9em)[
-  *#label · #title* #h(0.4em) #status(st) \
+// One entry per review point: label · title — status (commit), then the answer.
+#let entry(label, title, st, commit, body) = block(spacing: 0.9em)[
+  *#label · #title* — #status(st) #if commit != none [(#raw(commit))] \
   #body
 ]
 
 #align(center)[
-  #text(size: 16pt, weight: "bold")[MS2 Summary: Feature Pipeline]
+  #text(size: 16pt, weight: "bold")[MS2 Summary — Regional Nectar-Flow Forecast]
   #v(0.1em)
-  #text(size: 11pt)[Regional Nectar-Flow Forecast · I.BA_MLOPS · HS26]
-  #v(0.1em)
-  #text(size: 10pt)[Elias Christen · #link("https://github.com/Whalesharkking/mlops")]
+  #text(size: 10pt)[Elias Christen · I.BA_MLOPS HS26 · #link("https://github.com/Whalesharkking/mlops") · tag `ms2`]
 ]
 
-= Summary of the milestone
+= What I achieved in this milestone
 
-// TODO: 4–6 sentences once the pipeline runs. State what works now.
+// TODO: rewrite in own words once the pipeline runs; do not copy the README.
 
-*What works.* TODO: The feature pipeline runs every day at TODO UTC on GitHub Actions. It polls the HiveWatch regional weight and the 00 UTC ECMWF IFS run from the Open-Meteo Single Runs API, archives both raw responses, and writes features and labels to the feature store on the HuggingFace Hub (TODO: link). It refuses to write an incomplete weather run and retries instead: on 15.10.2026 at 07:46 UTC, the same day's run held only 72 of 240 hours. A backfill from 14.03.2024 ran with the same code (TODO: number of rows, dataset revision).
+- *What works now:* TODO. The feature pipeline runs every day at TODO UTC on GitHub Actions. It polls the HiveWatch regional weight, the scale count and the 00 UTC ECMWF run from Open-Meteo, archives the raw responses, and writes features and labels to the HF Hub dataset (TODO: link).
+- *Backfill:* TODO. It runs from 14.03.2024 with the same code as the daily job; result: TODO rows, dataset revision TODO.
+- *Key decisions:*
+  - The momentum features end at $t_0 - 2$ (see A1).
+  - Each row stores both its issue date and its target date, which makes the joins point-in-time correct.
+  - The data is versioned by HF Hub dataset revisions instead of DVC, because every write already is a Git commit.
+  - The pipeline refuses to write an incomplete weather run and retries. On 15.10.2026 at 07:46 UTC, the same day's run held only 72 of 240 hours.
+- *What it cost:*
+  - Momentum ending at $t_0 - 2$ means the newest day is not used as an input.
+  - The scale count exists only from 15.10.2026 on; there is no history for it.
+  - TODO: anything else, such as rows lost to flags or a rewrite.
+- *Look at first:* TODO workflow file, TODO feature module, TODO dataset on the HF Hub, `tests/`.
 
-*Key decisions.*
-- The momentum features end at $t_0 - 2$, so they use only final days (A1).
-- Every row stores both its issue date and its target date, which makes the joins point-in-time correct.
-- The feature store is versioned through HF Hub dataset revisions instead of DVC: every write is a Git commit, and that revision is the data version logged with each model in MS3.
-
-*Where to look first.*
-- TODO: workflow file
-- TODO: feature module
-- TODO: dataset on the HF Hub
-- The README sections "Data sources & permission to use" and "Label & features"
-
-= Response to reviews
+= Response to MS1 reviews
 
 All labels are from the MS1 editorial summary.
 
-#entry("A4", "Permission to poll the bienen.ch endpoint", "Partly")[
-  On *15.10.2026* I asked BienenSchweiz (cc HiveWatch) in writing whether daily polling and publishing derived regional values are allowed. Answer: TODO (pending / allowed / refused, date).
+#entry("A4", "Permission to poll the bienen.ch endpoint", "Partly", none)[
+  On 15.10.2026 I asked BienenSchweiz (cc HiveWatch) in writing whether daily polling and showing derived regional values are allowed. Answer: TODO.
 
-  The fallbacks were tested on 15.10.2026:
-  - *Hiveeyes* has no Swiss nodes and offers only raw single-hive weight, so it cannot replace the label.
-  - *`midnightvalues`* exists only per single scale, so I dropped it as a regional path.
-  - The new fallback is *TrachtNet Bayern*, run by state bee institutes. It is public, gives the daily corrected change per region with the scale count, and has data from 2011. Permission was asked there too (TODO: status).
+  I tested the fallbacks the same day:
+  - *Hiveeyes* has no Swiss nodes and offers only raw single-hive weight, so it is not usable.
+  - The regional `midnightvalues` cover only 8 days and come from the same provider, so they are not independent.
+  - I chose *TrachtNet Bayern* (state bee institutes) instead. It is public, gives the daily corrected change per region with the scale count, and has data from 2011. Permission was asked there too: TODO.
 
-  If access is refused, only the source adapter changes. Files: `README.md` §"Data sources & permission to use", TODO: adapter.
+  If access is refused, only the source adapter changes. Files: `README.md` §Data sources, TODO adapter.
 ]
 
-#entry("A1", "Training/serving skew in the momentum features", "Changed")[
-  Past as-of states cannot be reconstructed for the backfill, because the API only returns today's (final) values for history. A comparison of as-of and final values over the backfill, as suggested, is therefore not possible. I solved the skew by construction instead:
-  - All momentum windows end at $t_0 - 2$, so they only use days whose label is already final. Training and serving see identical inputs.
-  - In addition, the pipeline archives every daily raw response as it was known at $t_0$. From the first live day on, this lets me measure how much the last two days still change, and decide in MS3 whether the newest days are worth adding as features.
+#entry("A1", "Training/serving skew in the momentum features", "Changed", "TODO")[
+  I measured the problem on 15.10.2026. TrachtNet listed about 357 scales for 13.10, but only 279 for the previous day. In HiveWatch, the previous day's midnight value was still missing at 09:00 UTC.
+
+  The suggested comparison of as-of and final values over the backfill is not possible, because the API returns only final values for the past. I removed the skew by construction instead:
+  - All momentum windows end at $t_0 - 2$, so training and serving see the same, final days.
+  - The raw daily responses are archived from now on. In MS3 they will show how much the last days still change.
 
   Files: TODO.
 ]
 
-#entry("A2", "Changing scale population", "Partly")[
-  The HiveWatch response contains no scale count. TODO, pick the final approach:
-  - The pipeline flags days whose change exceeds TODO kg without a matching weather signal, and stores the flag as a column.
-  - The fallback source TrachtNet provides the daily scale count directly.
+#entry("A2", "Changing scale population", "Partly", "TODO")[
+  The set of scales does change; HiveWatch shows 364 for Nordalpen today but keeps no history. The effect on the label is small, though. The regional curve is an average of per-scale weight changes (it runs around 0 kg, not around absolute hive weights of about 60 kg), so a scale that joins or leaves shifts the average only by its own share. A single faulty scale is the larger risk: a +20 kg error moves the mean of 364 scales by about 0.05 kg, which is as large as a typical winter day.
 
-  TODO: what was observed in the backfill (number of flagged days). Files: TODO.
+  How I handle it:
+  - The current count is stored daily as `n_scales`.
+  - Days with an implausible change (|Δ| > TODO kg) get a `jump_flag` and are excluded from the label and the momentum.
+  - The climatology uses the median.
+
+  In the backfill, TODO days were flagged. Files: TODO.
 ]
 
-#block(spacing: 0.9em)[
-  *A3, B1, B2 · Champion gate, training data, cross-validation* #h(0.4em) #status("Not yet") \
-  All three concern training and evaluation and are planned for MS3. I accept them as suggested:
-  - *A3:* the champion gate compares models only on flow-season weeks (April–July), with a minimum MAE gain of TODO kg/day.
-  - *B1:* the MAE is reported per horizon together with the sample size (about 6,500 correlated rows, one test season). I will discuss whether $h = 6 … 10$ can beat climatology.
-  - *B2:* expanding-window CV over forecast days, with all ten horizons of a day in the same fold, a 10-day gap before each block, and the first validation block in the 2025 flow season. The 2026 season stays untouched until the final evaluation.
+#entry("A3", "Champion gate in winter", "Not yet", none)[
+  I agree; I will implement it in MS3. One model keeps forecasting all year. A challenger can become champion only from March to September, if it beats the champion by at least TODO kg/day. From October to February, the challenger is trained and logged but never promoted, because near-zero targets cannot separate models.
+]
+
+#entry("B1", "Little training data for the later horizons", "Not yet", none)[
+  I agree. The training set has about 650 forecast days (≈ 6,500 correlated rows), and the test set is one season. The bottleneck is the forecast archive, which starts on 14.03.2024, not the hive data (HiveWatch has data from 2019).
+
+  I checked an alternative: the open GFS archive on AWS reaches back to 01.01.2021, which would give about three times as many days. In MS3 I will report the MAE per horizon with the sample size, and test whether GFS lets $h = 6…10$ beat climatology.
+]
+
+#entry("B2", "Time-ordered cross-validation for tuning", "Not yet", none)[
+  I will implement it in MS3 as suggested:
+  - expanding-window folds over forecast days, with all ten horizons of a day in one fold;
+  - a 10-day gap before each validation block;
+  - the first validation block in the 2025 flow season.
+
+  The 2026 season stays untouched until the final test.
 ]

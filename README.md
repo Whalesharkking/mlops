@@ -65,7 +65,7 @@ flowchart LR
 
 | Source | Result | Usable as fallback? |
 |---|---|---|
-| HiveWatch `midnightvalues` | Exists only per single scale (`controller/<id>/midnightvalues`), not per region | No – it is not a regional fallback |
+| HiveWatch `public/region/11/midnightvalues` | Regional daily deltas, but only for the last 8 days and from the same provider | No – not independent. It is used to cross-check the label |
 | [Hiveeyes](https://swarm.hiveeyes.org) | Open API (no key). There are 332 public dashboards, none in Switzerland, and the sampled nodes are inactive (e.g. last data May 2023). It serves raw single-hive weight that still includes interventions | No |
 | [TrachtNet](https://www.bienenkunde.rlp.de) (DLR Rheinland-Pfalz & LWG Bayern) | Public web portal without login. It provides daily **corrected** weight change per region and the **number of scales per day**. Data runs from 2011 and is fresh up to the previous day. Bayern had about 127 scales in 2019, about 250 in 2025 and about 335 in 2026. Switzerland has only 1–4 scales | **Yes** – Bayern / Oberbayern |
 
@@ -97,7 +97,7 @@ One row per forecast day *t0* and horizon *h*. Each row stores **two dates**: th
 | Weight momentum | net change over the last 1 / 3 / 7 / 14 days, on a fixed daily grid, **ending at t0−2** (final days only, see review point A1) |
 | Climatology | mean change for the target date, 2019–2023 ±7 days |
 | Calendar | day of year as sin/cos, horizon *h* |
-| Data quality | TODO: scale count / jump flag (review point A2) |
+| Data quality | `n_scales`: number of scales in the region, read daily from `public/region/1` (`nofScales`) and archived from 15.10.2026 on. `jump_flag`: set on days with an implausible change, TODO threshold (review point A2) |
 
 **Leakage controls**
 
@@ -156,18 +156,36 @@ Secrets live only in `.env` (gitignored) locally and in GitHub Secrets in CI.
 |---|---|---|
 | TODO `feature-daily.yml` | cron TODO UTC, daily | Poll HiveWatch and Open-Meteo, check that the run is complete (retry if not), compute features and labels, push to HF Hub |
 | TODO `backfill.yml` | manual (`workflow_dispatch`) with a date range | Same code as the daily run, for history |
+| TODO `ci.yml` | push / pull request | Runs the unit tests and builds the Docker image |
 | `render-pdf.yml` | push to `docs/` | Renders the Typst docs to PDF |
 
 The workflows use `concurrency:` so that runs never overlap.
 
+## Tests
+
+```bash
+uv run pytest
+```
+
+TODO: what is covered (e.g. label computation, momentum windows ending at t0−2, jump flag, weather-run completeness check). The tests run in CI on every push.
+
 ## Repository layout
 
-TODO once the code exists.
+TODO: final once the code exists.
 
 ```
-docs/            proposal, milestone summaries (Typst → PDF via CI)
-.github/workflows/
+src/TODO/
+  features/        feature pipeline: ingest, backfill, compute, write
+  common/          shared config, IO and feature definitions
+tests/             unit tests (run in CI)
+docs/              proposal, milestone summaries (Typst → PDF via CI)
+.github/workflows/ scheduled pipelines and CI
+Dockerfile
+pyproject.toml + uv.lock
+.env.example
 ```
+
+Milestones are tagged in Git (`ms2`, `ms3`, …).
 
 ## Credits
 
