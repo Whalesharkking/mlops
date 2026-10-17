@@ -42,12 +42,12 @@
 All labels are from the MS1 editorial summary.
 
 #entry("A4", "Permission to poll the bienen.ch endpoint", "Partly", none)[
-  On 15.10.2026 I asked BienenSchweiz (cc HiveWatch) in writing whether daily polling and showing derived regional values are allowed. Answer: TODO.
+  On 15.10.2026 I asked BienenSchweiz (cc HiveWatch) in writing whether daily polling and showing derived regional values are allowed. No reply so far (last checked 17.10.2026). Until then the pipeline polls once a day, credits the source and publishes only regional aggregates.
 
   I tested the fallbacks the same day:
   - *Hiveeyes* has no Swiss nodes and offers only raw single-hive weight, so it is not usable.
   - The regional `midnightvalues` cover only 8 days and come from the same provider, so they are not independent.
-  - I chose *TrachtNet Bayern* (state bee institutes) instead. It is public, gives the daily corrected change per region with the scale count, and has data from 2011. Permission was asked there too: TODO.
+  - I chose *TrachtNet Bayern* (state bee institutes) instead. It is public, gives the daily corrected change per region with the scale count, and has data from 2011. Permission was asked there too, also without reply so far.
 
   TrachtNet stays a documented plan: an adapter is only built if HiveWatch access is refused or breaks, and then only the ingest module changes. Files: `README.md` §Data sources.
 ]
