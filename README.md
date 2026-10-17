@@ -88,6 +88,7 @@ One row per forecast day *t0* and horizon *h*. Each row stores **two dates**: th
 
 - The net weight change of one day: the weight at midnight after the day minus the weight at midnight before it.
 - Days without a midnight value stay empty; they are not interpolated.
+- Cross-check against HiveWatch's own daily deltas (`public/region/11/midnightvalues`): within 0.004 kg in September 2026, within 0.018 kg (mean 0.007 kg) on 17.10.2026. HiveWatch computes those deltas slightly differently. The difference is small next to a daily change of 0.1 to 0.5 kg.
 - A label counts as final only after 2 days, because scales can upload late.
 
 **Features** (one row per issue date *t0* and horizon *h*, defined once in [`compute.py`](src/nectarflow/features/compute.py) and [`config.py`](src/nectarflow/common/config.py) for training and inference)
