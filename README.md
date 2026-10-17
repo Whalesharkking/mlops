@@ -2,11 +2,11 @@
 
 > 10-day forecast of the daily net hive-weight change for the Central-Swiss pre-Alps (HiveWatch region *Nordalpen*), built as a live FTI system for HSLU I.BA_MLOPS HS26.
 
-<!-- TODO MS4: video pitch link goes here (first line of README) -->
+<!-- TODO MS4 video pitch link goes here (first line of README) -->
 
 | | |
 |---|---|
-| **Milestone** | MS2 – Feature pipeline (due 05.11.2026) |
+| **Milestone** | MS2, feature pipeline (due 05.11.2026) |
 | **Proposal** | [docs/proposal.pdf](docs/proposal.pdf) |
 | **MS2 summary & review response** | [docs/ms2_summary.pdf](docs/ms2_summary.pdf) |
 | **Feature store** | [Whalesharkking/nectarflow-features](https://huggingface.co/datasets/Whalesharkking/nectarflow-features) (Hugging Face dataset) |
@@ -20,7 +20,7 @@ A positive value means the colonies collect more nectar than they consume. A neg
 The model must beat two baselines on per-horizon MAE:
 
 - **Persistence:** every coming day repeats the last complete day.
-- **Climatology:** the usual change for that date, averaged over 2019–2023 (±7 days).
+- **Climatology:** the usual change for that date, averaged over 2019-2023 (±7 days).
 
 The target is at least 10 % better than the better baseline for *h* = 1…5, and at least equal for *h* = 6…10.
 
@@ -46,14 +46,14 @@ flowchart LR
 
 | Component | Status |
 |---|---|
-| Feature pipeline (daily + backfill) | MS2 – done: [`src/nectarflow/features/`](src/nectarflow/features/) |
-| Feature store (Parquet on HF Hub) | MS2 – done: layout in [Feature store](#feature-store) |
-| Training pipeline + W&B registry | MS3 – planned |
-| Inference pipeline + Gradio UI | MS4 – planned |
+| Feature pipeline (daily + backfill) | Done in MS2, see [`src/nectarflow/features/`](src/nectarflow/features/) |
+| Feature store (Parquet on HF Hub) | Done in MS2, layout in [Feature store](#feature-store) |
+| Training pipeline + W&B registry | Planned for MS3 |
+| Inference pipeline + Gradio UI | Planned for MS4 |
 
 ## Data sources & permission to use
 
-### Hive weight – HiveWatch / BienenSchweiz (primary)
+### Hive weight from HiveWatch / BienenSchweiz (primary)
 
 - **Source:** the public scale map on [bienen.ch](https://bienen.ch/imkerei/zucht/waagvoelker/), operated by BienenSchweiz with HiveWatch.
 - **Endpoint:** `GET https://app.hivewatch.net/region/11/averages?sensorType=ext_weight&startdate=<epoch ms>&enddate=<epoch ms>`. It needs no login and returns hourly, intervention-filtered weight for region 11 ("Nordalpen").
@@ -61,34 +61,34 @@ flowchart LR
   - **Status:** no reply received (last checked 17.10.2026). Until an answer arrives, polling stays at one request per day plus the scale count, the data is credited, and only regional aggregates are published. If access is refused, the TrachtNet fallback below replaces this source.
 - **Polling:** once per day, plus a one-time history download, and only for the duration of the project (until about January 2027).
 
-### Hive weight – fallback options (tested 15.10.2026)
+### Fallback options for the hive weight (tested 15.10.2026)
 
 | Source | Result | Usable as fallback? |
 |---|---|---|
-| HiveWatch `public/region/11/midnightvalues` | Regional daily deltas, but only for the last 8 days and from the same provider | No – not independent. It is used to cross-check the label |
+| HiveWatch `public/region/11/midnightvalues` | Regional daily deltas, but only for the last 8 days and from the same provider | No, not independent. It is used to cross-check the label |
 | [Hiveeyes](https://swarm.hiveeyes.org) | Open API (no key). There are 332 public dashboards, none in Switzerland, and the sampled nodes are inactive (e.g. last data May 2023). It serves raw single-hive weight that still includes interventions | No |
-| [TrachtNet](https://www.bienenkunde.rlp.de) (DLR Rheinland-Pfalz & LWG Bayern) | Public web portal without login. It provides daily **corrected** weight change per region and the **number of scales per day**. Data runs from 2011 and is fresh up to the previous day. Bayern had about 127 scales in 2019, about 250 in 2025 and about 335 in 2026. Switzerland has only 1–4 scales | **Yes** – Bayern / Oberbayern |
+| [TrachtNet](https://www.bienenkunde.rlp.de) (DLR Rheinland-Pfalz & LWG Bayern) | Public web portal without login. It provides daily **corrected** weight change per region and the **number of scales per day**. Data runs from 2011 and is fresh up to the previous day. Bayern had about 127 scales in 2019, about 250 in 2025 and about 335 in 2026. Switzerland has only 1 to 4 scales | **Yes**, Bayern / Oberbayern |
 
-A permission request was also sent to TrachtNet (trachtnet@dlr.rlp.de) on 15.10.2026. Status: no reply received (last checked 17.10.2026). The adapter is built only if HiveWatch access is refused or breaks.
+A permission request was also sent to TrachtNet (trachtnet@dlr.rlp.de) on 15.10.2026. No reply has been received so far (last checked 17.10.2026). The adapter is built only if HiveWatch access is refused or breaks.
 
 Switzerland has no other open hive-scale API. I checked the Romandie, Ticino, Agroscope and opendata.swiss.
 
-### Weather forecasts – Open-Meteo Single Runs API
+### Weather forecasts from the Open-Meteo Single Runs API
 
-- **Endpoint:** `https://single-runs-api.open-meteo.com/v1/forecast`. It serves every archived run of **ECMWF IFS HRES (9 km)** since 14.03.2024 and needs no key. Data: [Open-Meteo](https://open-meteo.com/) (CC BY 4.0).
-- **Run used:** the 00 UTC run, for four locations: Lucerne, Schwyz, Altdorf and Sarnen. The values are averaged and aggregated from hourly to daily.
+- **Endpoint:** `https://single-runs-api.open-meteo.com/v1/forecast`. It serves every archived run of **ECMWF IFS HRES (9 km)** since 14.03.2024 and needs no key. The data comes from [Open-Meteo](https://open-meteo.com/) under CC BY 4.0.
+- **Run used:** the 00 UTC run for four locations (Lucerne, Schwyz, Altdorf and Sarnen). The values are averaged and aggregated from hourly to daily.
 - **Run completeness:** at 07:46 UTC the same day's 00 UTC run was only partly available (72 of 240 h). The pipeline therefore runs at 08:30 UTC, refuses to write a run with fewer than 240 hours, and polls again every 10 minutes for up to two hours (see [Schedule](#schedule)).
-- **Rate limit:** one request with four locations counts as about four calls (free tier: 600 per minute, 5000 per hour). The backfill waits 1.5 s between runs and waits out HTTP 429.
+- **Rate limit:** one request with four locations counts as about four calls (the free tier allows 600 per minute and 5000 per hour). The backfill waits 1.5 s between runs and waits out HTTP 429.
 
 ## Label & features
 
-One row per forecast day *t0* and horizon *h*. Each row stores **two dates**: the day the forecast was issued and the day it is for. Training therefore always uses real archived forecasts, never observed weather.
+One row per forecast day *t0* and horizon *h*. Each row stores **two dates**, the day the forecast was issued and the day it is for. Training therefore always uses real archived forecasts, never observed weather.
 
 **Label**
 
-- The net weight change of one day: the weight at midnight after the day minus the weight at midnight before it.
-- Days without a midnight value stay empty; they are not interpolated.
-- Cross-check against HiveWatch's own daily deltas (`public/region/11/midnightvalues`): within 0.004 kg in September 2026, within 0.018 kg (mean 0.007 kg) on 17.10.2026. HiveWatch computes those deltas slightly differently. The difference is small next to a daily change of 0.1 to 0.5 kg.
+- The label is the net weight change of one day, measured as the weight at midnight after the day minus the weight at midnight before it.
+- Days without a midnight value stay empty and are not interpolated.
+- Cross-checked against HiveWatch's own daily deltas (`public/region/11/midnightvalues`), the labels agree within 0.004 kg in September 2026 and within 0.018 kg (mean 0.007 kg) on 17.10.2026. HiveWatch computes those deltas slightly differently. The difference is small next to a daily change of 0.1 to 0.5 kg.
 - A label counts as final only after 2 days, because scales can upload late.
 
 **Features** (one row per issue date *t0* and horizon *h*, defined once in [`compute.py`](src/nectarflow/features/compute.py) and [`config.py`](src/nectarflow/common/config.py) for training and inference)
@@ -96,31 +96,31 @@ One row per forecast day *t0* and horizon *h*. Each row stores **two dates**: th
 | Group | Columns |
 |---|---|
 | Weather forecast for the target day (run of *t0*, mean of the four locations, local calendar day) | `tmax`, `tmin` (°C), `precip_sum` (mm), `shortwave_sum` (MJ/m²), `wind_max` (km/h), `n_hours` (hours the day is built from) |
-| Weight momentum | `mom_1d`, `mom_3d`, `mom_7d`, `mom_14d`: net change over the last 1/3/7/14 days, **ending at t0−2** (final days only, review point A1). A window with a missing or flagged day is empty, never zero |
-| Climatology | `clim_target`: median change for the target day of year, 2019–2023, ±7 days, flagged days excluded |
+| Weight momentum | `mom_1d`, `mom_3d`, `mom_7d`, `mom_14d` with the net change over the last 1/3/7/14 days, **ending at t0−2** (final days only, review point A1). A window with a missing or flagged day is empty, never zero |
+| Climatology | `clim_target` with the median change for the target day of year, 2019-2023, ±7 days, flagged days excluded |
 | Calendar | `doy_sin`, `doy_cos` of the target date, horizon `h` |
 
 **Data quality (review point A2)**
 
-- `jump_flag` in the label table marks implausible daily changes: more than 2.5 kg in April to July, more than 1.0 kg in the rest of the year. Real flow days reach about 1.7 kg. Larger changes come from snow load, frost or faulty scales: HiveWatch's filter (`filtered=true`) removes beekeeper interventions per scale, but not weather on the scale, so the flag catches what is left in the regional mean. In 2019 to 2026, 56 of 2813 days are flagged, none of them in the flow season (21 in January 2021 alone). Flagged days are removed from `label_clean`, the momentum and the climatology.
-- `n_scales`: number of scales in the region, read daily from `public/region/11` (`nofScales`, 364 on 17.10.2026) into `quality/n_scales.parquet`. HiveWatch keeps no history, so the series starts on the first polling day.
+- `jump_flag` in the label table marks implausible daily changes, meaning more than 2.5 kg in April to July, more than 1.0 kg in the rest of the year. Real flow days reach about 1.7 kg. Larger changes come from snow load, frost or faulty scales. HiveWatch's filter (`filtered=true`) removes beekeeper interventions per scale, but not weather on the scale, so the flag catches what is left in the regional mean. In 2019 to 2026, 56 of 2813 days are flagged, none of them in the flow season (21 in January 2021 alone). Flagged days are removed from `label_clean`, the momentum and the climatology.
+- `n_scales` is the number of scales in the region, read daily from `public/region/11` (`nofScales`, 364 on 17.10.2026) into `quality/n_scales.parquet`. HiveWatch keeps no history, so the series starts on the first polling day.
 
 **Leakage controls**
 
-- Point-in-time correct: each feature row carries its issue date and target date, and uses only what was known and final on the morning of *t0*.
+- Every feature row is point-in-time correct. It carries its issue date and target date and uses only what was known and final on the morning of *t0*.
 - Feature rows contain no label. Training joins `labels/labels.parquet` on `target_date` and keeps only rows with `is_final`.
 - The backfill runs the same code as the daily job.
 - The recent weight series is archived every day exactly as polled (`raw/hivewatch/`), so MS3 can measure how much the last days still change (review point A1).
-- The climatology uses only 2019–2023, so no training or test year enters it.
+- The climatology uses only 2019-2023, so no training or test year enters it.
 
 **Split**
 
-- Training: forecast days from 14.03.2024 to 22.12.2025.
-- Test: the unseen 2026 season.
+- **Training:** forecast days from 14.03.2024 to 22.12.2025.
+- **Test:** the unseen 2026 season.
 
 ## Feature store
 
-A Hugging Face dataset repo with versioned Parquet files (“poor man's feature store”). The repo id is set by `HF_DATASET_REPO`: [Whalesharkking/nectarflow-features](https://huggingface.co/datasets/Whalesharkking/nectarflow-features). The pipeline adds a dataset card with sources and licences on its first upload.
+A Hugging Face dataset repo with versioned Parquet files (“poor man's feature store”). The repo id is set by `HF_DATASET_REPO` ([Whalesharkking/nectarflow-features](https://huggingface.co/datasets/Whalesharkking/nectarflow-features)). The pipeline adds a dataset card with sources and licences on its first upload.
 
 | Path | Content | Key | Written |
 |---|---|---|---|
@@ -184,11 +184,11 @@ uv run ruff check . && uv run ruff format --check .
 
 Tests, lint and format check run without network in CI on every push:
 
-- [`test_labels.py`](tests/test_labels.py): midnight-to-midnight label ignores the noon dip, :30 timestamps of 2019–2020, missing midnight stays empty, daylight-saving change, `is_final` after two days, seasonal `jump_flag`
-- [`test_compute.py`](tests/test_compute.py): momentum windows end at t0−2 and never see non-final days, a gap makes a window empty, climatology uses only 2019–2023 and wraps around new year, ten rows with the right target dates and no label
-- [`test_weather.py`](tests/test_weather.py): incomplete run is rejected, local calendar days, location mean, unit conversion, first hour not counted as zero
-- [`test_pipeline.py`](tests/test_pipeline.py): end-to-end run with fake APIs: backfill layout, incomplete run skipped, idempotent rerun
-- [`test_store.py`](tests/test_store.py): Hub upload in batches with a fake API, files already on the Hub are skipped, local mode never uploads
+- [`test_labels.py`](tests/test_labels.py) covers midnight-to-midnight label ignores the noon dip, :30 timestamps of 2019-2020, missing midnight stays empty, daylight-saving change, `is_final` after two days, seasonal `jump_flag`
+- [`test_compute.py`](tests/test_compute.py) covers momentum windows end at t0−2 and never see non-final days, a gap makes a window empty, climatology uses only 2019-2023 and wraps around new year, ten rows with the right target dates and no label
+- [`test_weather.py`](tests/test_weather.py) covers incomplete run is rejected, local calendar days, location mean, unit conversion, first hour not counted as zero
+- [`test_pipeline.py`](tests/test_pipeline.py) covers an end-to-end run with fake APIs (backfill layout, incomplete run skipped, idempotent rerun)
+- [`test_store.py`](tests/test_store.py) covers Hub upload in batches with a fake API, files already on the Hub are skipped, local mode never uploads
 
 ## Repository layout
 
@@ -214,6 +214,6 @@ Milestones are tagged in Git (`ms2`, `ms3`, …).
 
 ## Credits
 
-- Hive data: HiveWatch / BienenSchweiz ([bienen.ch](https://bienen.ch)), regional averages of the Waagvölker network.
-- Weather forecasts: [Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0), ECMWF IFS HRES.
-- Fallback hive data: TrachtNet Deutschland (DLR Rheinland-Pfalz, LWG Bayern).
+- **Hive data:** HiveWatch / BienenSchweiz ([bienen.ch](https://bienen.ch)), regional averages of the Waagvölker network.
+- **Weather forecasts:** [Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0), ECMWF IFS HRES.
+- **Fallback hive data:** TrachtNet Deutschland (DLR Rheinland-Pfalz, LWG Bayern).
