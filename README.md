@@ -13,7 +13,7 @@
 
 ## What it predicts
 
-Every morning the system forecasts the **net weight change in kg/day** of the monitored colonies in the *Nordalpen* region (roughly the cantons of Lucerne, Schwyz, Uri, Obwalden and Nidwalden), for today and the next nine days (horizon *h* = 1…10). The value is the regional average of about 372 scales, with beekeeper interventions (feeding, honey removal, adding boxes) filtered out.
+Every morning the system forecasts the **net weight change in kg/day** of the monitored colonies in the *Nordalpen* region (roughly the cantons of Lucerne, Schwyz, Uri, Obwalden and Nidwalden), for today and the next nine days (horizon *h* = 1…10). The value is the regional average of about 364 scales (17.10.2026), with beekeeper interventions (feeding, honey removal, adding boxes) filtered out.
 
 A positive value means the colonies collect more nectar than they consume. A negative value means they live on their stores.
 
@@ -144,7 +144,7 @@ set -a && . ./.env && set +a
 # daily run (today), same as the scheduled job
 uv run python -m nectarflow.features.pipeline
 
-# backfill a date range with the same code (about 25 min from 14.03.2024)
+# backfill a date range with the same code (about 30 min from 14.03.2024)
 uv run python -m nectarflow.features.pipeline --start 2024-03-14 --end 2026-10-31
 
 # without a Hugging Face account: write to DATA_DIR only

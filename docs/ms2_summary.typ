@@ -23,7 +23,7 @@
 = What I achieved in this milestone
 
 - *What works now:* In MS1 the pipeline existed only on paper. Now a GitHub Actions job runs every morning at 08:30 UTC without me: it pulls the regional hive weight and the scale count from HiveWatch and the new 00 UTC ECMWF run from Open-Meteo, builds ten feature rows for today and pushes them with the updated labels to my feature store on the Hugging Face Hub (#link("https://huggingface.co/datasets/Whalesharkking/nectarflow-features")[`Whalesharkking/nectarflow-features`]). If the weather run is not complete yet, the job waits instead of writing half a forecast. Every push is checked by lint, 21 unit tests, a Docker build and a Trivy scan.
-- *Backfill:* It runs from 14.03.2024 with the same code as the daily job (`--start`), 940 issue dates (9,400 rows, 14.03.2024 to 17.10.2026) in one GitHub Actions run of 30 minutes; dataset revision `2752f4c`.
+- *Backfill:* It runs from 14.03.2024 with the same code as the daily job (`--start`), 940 issue dates (9,400 rows, 14.03.2024 to 17.10.2026) in one GitHub Actions run of 27 minutes; dataset revision `2752f4c`.
 - *Key decisions:*
   - The momentum features end at $t_0 - 2$ (see A1).
   - Each row stores both its issue date and its target date, which makes the joins point-in-time correct.
@@ -39,7 +39,7 @@
 
 = Response to MS1 reviews
 
-All labels are from the MS1 editorial summary.
+All labels are from the MS1 editorial summary, which covers every concern of both reviews; the Must point comes first.
 
 #entry("A4", "Permission to poll the bienen.ch endpoint", "Partly", none)[
   On 15.10.2026 I asked BienenSchweiz (cc HiveWatch) in writing whether daily polling and showing derived regional values are allowed. No reply so far (last checked 17.10.2026). Until then the pipeline polls once a day, credits the source and publishes only regional aggregates.
@@ -57,7 +57,7 @@ All labels are from the MS1 editorial summary.
 
   The suggested comparison of as-of and final values over the backfill is not possible, because the API returns only final values for the past. I removed the skew by construction instead:
   - All momentum windows end at $t_0 - 2$, so training and serving see the same, final days.
-  - The raw daily responses are archived from now on. In MS3 they will show how much the last days still change.
+  - From now on, every run archives the last 30 days of the weight series exactly as polled (`raw/hivewatch/`). This gives the as-of values Reviewer A asked for, and in MS3 they show how much the last days still change before they are final.
 
   Files: `src/nectarflow/features/compute.py` (`momentum`), `labels.py` (`is_final`), `pipeline.py` (as-of snapshot in `raw/hivewatch/`).
 ]
@@ -74,13 +74,13 @@ All labels are from the MS1 editorial summary.
 ]
 
 #entry("A3", "Champion gate in winter", "Not yet", none)[
-  I agree; I will implement it in MS3. One model keeps forecasting all year. A challenger can become champion only from March to September, if it beats the champion by at least 0.01 kg/day MAE (about 3 % of the climatology MAE of 0.29, below the 10 % success margin, so real gains pass and noise does not; checked with the CV of B2). From October to February, the challenger is trained and logged but never promoted, because near-zero targets cannot separate models.
+  I agree; I will implement it in MS3. One model keeps forecasting all year. A challenger can become champion only from March to September, if it beats the champion by at least 0.01 kg/day MAE (about 3 % of the climatology MAE of 0.29 and below the 10 % success margin; to be checked with the CV of B2). From October to February, the challenger is trained and logged but never promoted, because near-zero targets cannot separate models.
 ]
 
 #entry("B1", "Little training data for the later horizons", "Not yet", none)[
-  I agree. The training set has about 650 forecast days (≈ 6,500 correlated rows), and the test set is one season. The bottleneck is the forecast archive, which starts on 14.03.2024, not the hive data (HiveWatch has data from 2019).
+  I agree, and the backfill confirms the numbers: 644 training issue dates with 6,197 labelled rows (about 620 per horizon, 2,300 in the flow season April to July), and 2,805 test rows in 2026. The bottleneck is the forecast archive, which starts on 14.03.2024, not the hive data (HiveWatch has data from 2019).
 
-  I checked an alternative: the open GFS archive on AWS reaches back to 01.01.2021, which would give about three times as many days. In MS3 I will report the MAE per horizon with the sample size, and test whether GFS lets $h = 6…10$ beat climatology.
+  In MS3 I will report the MAE per horizon together with these sample sizes and say whether $h = 6…10$ can beat climatology at all. A longer archive (GFS on AWS, from 2021) would triple the days but needs raw GRIB downloads; I only consider it if the later horizons clearly suffer from too little data.
 ]
 
 #entry("B2", "Time-ordered cross-validation for tuning", "Not yet", none)[
