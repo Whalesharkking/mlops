@@ -28,20 +28,20 @@ The target is at least 10 % better than the better baseline for *h* = 1…5, and
 
 ```mermaid
 flowchart LR
-  subgraph src[Live data]
-    H[HiveWatch API<br/>regional weight, nightly]
-    T[TrachtNet Bayern<br/>fallback]
-    O[Open-Meteo Single Runs<br/>ECMWF IFS, 10 days]
+  subgraph src["Live data"]
+    H["HiveWatch API<br/>regional weight, nightly"]
+    T["TrachtNet Bayern<br/>fallback"]
+    O["Open-Meteo Single Runs<br/>ECMWF IFS, 10 days"]
   end
   H --> FP
-  T -.->|fallback| FP
+  T -.->|"fallback"| FP
   O --> FP
-  FP[Feature pipeline<br/>daily + backfill<br/>GitHub Actions] -->|features + labels| FS[(Feature store<br/>Parquet on HF Hub)]
-  FS -->|read| TP[Training pipeline<br/>weekly, LightGBM]
-  TP -->|challenger| MR[(Model registry<br/>W&B)]
-  MR -->|@champion| IP[Inference pipeline<br/>daily batch]
-  FS -.->|features at t0| IP
-  IP --> UI[Gradio UI<br/>HF Spaces]
+  FP["Feature pipeline<br/>daily + backfill<br/>GitHub Actions"] -->|"features + labels"| FS[("Feature store<br/>Parquet on HF Hub")]
+  FS -->|"read"| TP["Training pipeline<br/>weekly, LightGBM"]
+  TP -->|"challenger"| MR[("Model registry<br/>W&B")]
+  MR -->|"load champion"| IP["Inference pipeline<br/>daily batch"]
+  FS -.->|"features at t0"| IP
+  IP --> UI["Gradio UI<br/>HF Spaces"]
 ```
 
 | Component | Status |

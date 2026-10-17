@@ -33,7 +33,7 @@
   - Momentum ending at $t_0 - 2$ means the newest day is not used as an input.
   - The scale count exists only from 17.10.2026 (first pipeline run) on, because HiveWatch keeps no history of it.
   - Eight archived ECMWF runs are missing at Open-Meteo (05.-09.08.2025, 11.06., 23.06. and 19.09.2026). These issue dates have no features. The pipeline logs and skips them instead of writing a partial run.
-  - 56 of 2813 days are jump-flagged. A momentum window that contains one stays empty for up to 14 days.
+  - 56 of 2813 days are flagged as implausible jumps, mostly snow load in winter (see A2). A momentum window that contains such a day stays empty for up to 14 days.
   - With momentum ending at $t_0 - 2$, the persistence baseline may also use only the last final day. Recomputed on the 2026 data, persistence reaches 0.31 at $h = 1$ and climatology (±7 days, median) 0.29 at every $h$, so climatology is now the stronger baseline at all horizons (the proposal had 0.24 and 0.32).
 - *Look at first:* `.github/workflows/feature-daily.yml`, `src/nectarflow/features/pipeline.py` and `compute.py`, the dataset on the HF Hub (link above), `tests/`.
 
@@ -49,7 +49,7 @@ All labels are from the MS1 editorial summary, which covers every concern of bot
   - The regional `midnightvalues` cover only 8 days and come from the same provider, so they are not independent.
   - I chose *TrachtNet Bayern* (state bee institutes) instead. It is public, gives the daily corrected change per region with the scale count, and has data from 2011. Permission was asked there too, also without reply so far.
 
-  TrachtNet stays a documented plan. An adapter is only built if HiveWatch access is refused or breaks, and then only the ingest module changes. See `README.md` §Data sources.
+  TrachtNet stays a documented plan. An adapter is only built if HiveWatch access is refused or breaks, and then only the ingest module changes. See the section Data sources in `README.md`.
 ]
 
 #entry("A1", "Training/serving skew in the momentum features", "Changed", "97c80d1")[
