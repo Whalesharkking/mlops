@@ -22,7 +22,7 @@
 
 = What I achieved in this milestone
 
-- *What works now:* In MS1 the pipeline existed only on paper. Now a GitHub Actions job runs every morning at 08:30 UTC without me. It pulls the regional hive weight and the scale count from HiveWatch and the new 00 UTC ECMWF run from Open-Meteo, builds ten feature rows for today and pushes them with the updated labels to my feature store on the Hugging Face Hub (#link("https://huggingface.co/datasets/Whalesharkking/nectarflow-features")[`Whalesharkking/nectarflow-features`]). If the weather run is not complete yet, the job waits instead of writing half a forecast. Every push is checked by lint, 21 unit tests, a Docker build and a Trivy scan.
+- *What works now:* The feature pipeline now runs on its own. Every morning a scheduled GitHub Actions job fetches the latest hive weights and the new weather forecast, turns them into features for the next ten days and saves them, together with the labels, in my feature store on Hugging Face (#link("https://huggingface.co/datasets/Whalesharkking/nectarflow-features")[`Whalesharkking/nectarflow-features`]). If the forecast is not fully published yet, the job waits for it instead of saving half of it. Every push also runs the tests, the linter, a Docker build and a security scan.
 - *Backfill:* It runs from 14.03.2024 with the same code as the daily job (`--start`), 940 issue dates (9,400 rows, 14.03.2024 to 17.10.2026) in one GitHub Actions run of 27 minutes. The dataset revision is `2752f4c`.
 - *Key decisions:*
   - The momentum features end at $t_0 - 2$ (see A1).
