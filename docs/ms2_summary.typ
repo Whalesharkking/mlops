@@ -25,7 +25,7 @@
 // TODO: rewrite in own words once the pipeline runs; do not copy the README.
 
 - *What works now:* TODO. The feature pipeline runs every day at 08:30 UTC on GitHub Actions. It polls the HiveWatch regional weight, the scale count and the 00 UTC ECMWF run from Open-Meteo, archives the raw responses, and writes features and labels to the HF Hub dataset #link("https://huggingface.co/datasets/Whalesharkking/nectarflow-features")[`Whalesharkking/nectarflow-features`]. Lint, 21 unit tests, a Docker build and a Trivy scan run in CI on every push.
-- *Backfill:* It runs from 14.03.2024 with the same code as the daily job (`--start`), about 930 issue dates with ten rows each; dataset revision TODO.
+- *Backfill:* It runs from 14.03.2024 with the same code as the daily job (`--start`), 940 issue dates (9,400 rows, 14.03.2024 to 17.10.2026) in one GitHub Actions run of 30 minutes; dataset revision `2752f4c`.
 - *Key decisions:*
   - The momentum features end at $t_0 - 2$ (see A1).
   - Each row stores both its issue date and its target date, which makes the joins point-in-time correct.
