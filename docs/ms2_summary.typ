@@ -24,8 +24,8 @@
 
 // TODO: rewrite in own words once the pipeline runs; do not copy the README.
 
-- *What works now:* TODO. The feature pipeline runs every day at TODO UTC on GitHub Actions. It polls the HiveWatch regional weight, the scale count and the 00 UTC ECMWF run from Open-Meteo, archives the raw responses, and writes features and labels to the HF Hub dataset (TODO: link).
-- *Backfill:* TODO. It runs from 14.03.2024 with the same code as the daily job; result: TODO rows, dataset revision TODO.
+- *What works now:* TODO. The feature pipeline runs every day at 08:30 UTC on GitHub Actions. It polls the HiveWatch regional weight, the scale count and the 00 UTC ECMWF run from Open-Meteo, archives the raw responses, and writes features and labels to the HF Hub dataset (TODO: link). Unit tests and a Docker build run in CI on every push.
+- *Backfill:* It runs from 14.03.2024 with the same code as the daily job (`--start`), about 950 issue dates with ten rows each; dataset revision TODO.
 - *Key decisions:*
   - The momentum features end at $t_0 - 2$ (see A1).
   - Each row stores both its issue date and its target date, which makes the joins point-in-time correct.
@@ -34,8 +34,9 @@
 - *What it cost:*
   - Momentum ending at $t_0 - 2$ means the newest day is not used as an input.
   - The scale count exists only from 15.10.2026 on; there is no history for it.
-  - TODO: anything else, such as rows lost to flags or a rewrite.
-- *Look at first:* TODO workflow file, TODO feature module, TODO dataset on the HF Hub, `tests/`.
+  - 56 of 2813 days are jump-flagged; a momentum window that contains one stays empty for up to 14 days.
+  - With momentum ending at $t_0 - 2$, the persistence baseline may also use only the last final day. Recomputed on 2026: persistence 0.31 at $h = 1$, climatology (±7 days, median) 0.29 at every $h$, so climatology is now the stronger baseline at all horizons (proposal: 0.24 and 0.32).
+- *Look at first:* `.github/workflows/feature-daily.yml`, `src/nectarflow/features/pipeline.py` and `compute.py`, the dataset on the HF Hub (TODO link), `tests/`.
 
 = Response to MS1 reviews
 
@@ -59,7 +60,7 @@ All labels are from the MS1 editorial summary.
   - All momentum windows end at $t_0 - 2$, so training and serving see the same, final days.
   - The raw daily responses are archived from now on. In MS3 they will show how much the last days still change.
 
-  Files: TODO.
+  Files: `src/nectarflow/features/compute.py` (`momentum`), `labels.py` (`is_final`), `pipeline.py` (as-of snapshot in `raw/hivewatch/`).
 ]
 
 #entry("A2", "Changing scale population", "Partly", "TODO")[
@@ -67,10 +68,10 @@ All labels are from the MS1 editorial summary.
 
   How I handle it:
   - The current count is stored daily as `n_scales`.
-  - Days with an implausible change (|Δ| > TODO kg) get a `jump_flag` and are excluded from the label and the momentum.
+  - Days with an implausible change (more than 2.5 kg in April to July, more than 1.0 kg otherwise) get a `jump_flag` and are excluded from the momentum and the climatology.
   - The climatology uses the median.
 
-  In the backfill, TODO days were flagged. Files: TODO.
+  56 of 2813 days since 2019 are flagged, none in the flow season, 21 in January 2021 (snow). Files: `src/nectarflow/features/labels.py`, `quality/n_scales.parquet`.
 ]
 
 #entry("A3", "Champion gate in winter", "Not yet", none)[

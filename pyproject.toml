@@ -1,0 +1,31 @@
+[project]
+name = "nectarflow"
+version = "0.2.0"
+description = "Regional nectar-flow forecast: FTI pipelines for the HiveWatch Nordalpen scales"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "huggingface-hub",
+    "pandas",
+    "pyarrow",
+    "requests",
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "ruff",
+]
+
+[build-system]
+requires = ["uv_build>=0.12,<0.13"]
+build-backend = "uv_build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 110
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]

@@ -1,0 +1,36 @@
+name: Feature pipeline (daily)
+
+on:
+  schedule:
+    # 08:30 UTC: the 00 UTC ECMWF run is usually complete on Open-Meteo by then
+    # (on 15.10.2026 it held only 72 of 240 hours at 07:46 UTC). The job waits up to
+    # two more hours if it is not, and fails if the run never completes.
+    - cron: "30 8 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: feature-store
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  features:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      HF_DATASET_REPO: ${{ vars.HF_DATASET_REPO }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v10.3.0
+        with:
+          enable-cache: true
+
+      - name: Install locked dependencies
+        run: uv sync --locked --no-dev
+
+      - name: Run feature pipeline for today
+        run: uv run --no-dev python -m nectarflow.features.pipeline --wait-minutes 120

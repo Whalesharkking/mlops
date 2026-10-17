@@ -1,0 +1,53 @@
+name: Feature pipeline (backfill)
+
+on:
+  workflow_dispatch:
+    inputs:
+      start:
+        description: "First issue date (YYYY-MM-DD); archived ECMWF runs start on 2024-03-14"
+        required: true
+        default: "2024-03-14"
+      end:
+        description: "Last issue date (YYYY-MM-DD); empty means today"
+        required: false
+        default: ""
+      force:
+        description: "Recompute issue dates that are already in the feature store"
+        type: boolean
+        default: false
+
+concurrency:
+  group: feature-store
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    env:
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      HF_DATASET_REPO: ${{ vars.HF_DATASET_REPO }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v10.3.0
+        with:
+          enable-cache: true
+
+      - name: Install locked dependencies
+        run: uv sync --locked --no-dev
+
+      # Same module and code path as the daily job, only with a date range.
+      - name: Run feature pipeline for the range
+        env:
+          START: ${{ inputs.start }}
+          END: ${{ inputs.end }}
+          FORCE: ${{ inputs.force }}
+        run: |
+          args=(--start "$START")
+          [ -n "$END" ] && args+=(--end "$END")
+          [ "$FORCE" = "true" ] && args+=(--force)
+          uv run --no-dev python -m nectarflow.features.pipeline "${args[@]}"

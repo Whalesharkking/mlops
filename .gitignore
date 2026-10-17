@@ -1,5 +1,8 @@
-# Jetbrains IDEs
+# IDEs, editor and assistant settings
 .idea
+.vscode/
+.claude/
+.DS_Store
 
 # Local working notes (not deliverables)
 docs/datasource-hivewatch.md
