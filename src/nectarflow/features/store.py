@@ -9,7 +9,7 @@ Layout (relative to the data directory and the repo root):
     features/issue_date=YYYY-MM-DD.parquet       ten rows per issue date, written once
     raw/openmeteo/run=YYYY-MM-DD.parquet         archived hourly run, per location
     raw/hivewatch/poll_date=YYYY-MM-DD.parquet   last 30 days of the weight series as polled
-    quality/n_scales.parquet                     scale count per poll date (from 15.10.2026)
+    quality/n_scales.parquet                     scale count per poll date (history starts with the first run)
 """
 
 import logging
@@ -38,6 +38,30 @@ def poll_path(poll_date: date) -> str:
 LABELS_PATH = "labels/labels.parquet"
 CLIMATOLOGY_PATH = "climatology/climatology.parquet"
 N_SCALES_PATH = "quality/n_scales.parquet"
+CARD_PATH = "README.md"
+
+DATASET_CARD = """---
+license: other
+pretty_name: Nectarflow features (HiveWatch Nordalpen)
+tags: [time-series, beekeeping, weather, feature-store]
+---
+
+# Nectarflow feature store
+
+Feature store of a student project (HSLU I.BA_MLOPS HS26): a 10-day forecast of the daily net
+weight change of the monitored bee colonies in the HiveWatch region *Nordalpen*.
+Code, schema and pipeline: https://github.com/Whalesharkking/mlops
+
+Written daily by a scheduled pipeline; every commit of this repo is one data version.
+
+## Sources and licences
+
+- Hive weight: regional, intervention-filtered average of the HiveWatch / BienenSchweiz
+  scale network (https://bienen.ch). Only regional aggregates are stored. Use for this
+  study project; permission for automated polling was requested from BienenSchweiz.
+- Weather: archived ECMWF IFS HRES forecasts via Open-Meteo (https://open-meteo.com),
+  CC BY 4.0.
+"""
 
 
 class FeatureStore:
@@ -50,6 +74,7 @@ class FeatureStore:
         self.token = token
         self._pending: list[str] = []
         self._remote_files: set[str] | None = None
+        self._repo_ready = False
 
     @property
     def remote(self) -> bool:
@@ -94,7 +119,12 @@ class FeatureStore:
         if not self.remote:
             log.info("local mode: %d files written to %s, nothing uploaded", len(files), self.data_dir)
             return None
-        self.api.create_repo(self.repo_id, repo_type="dataset", exist_ok=True)
+        if not self._repo_ready:
+            self.api.create_repo(self.repo_id, repo_type="dataset", exist_ok=True)
+            self._repo_ready = True
+        if not self.exists(CARD_PATH):
+            (self.data_dir / CARD_PATH).write_text(DATASET_CARD)
+            files.append(CARD_PATH)
         info = self.api.upload_folder(
             repo_id=self.repo_id,
             repo_type="dataset",

@@ -9,7 +9,7 @@
 | **Milestone** | MS2 – Feature pipeline (due 05.11.2026) |
 | **Proposal** | [docs/proposal.pdf](docs/proposal.pdf) |
 | **MS2 summary & review response** | [docs/ms2_summary.pdf](docs/ms2_summary.pdf) |
-| **Feature store** | TODO: link to HF Hub dataset |
+| **Feature store** | [Whalesharkking/nectarflow-features](https://huggingface.co/datasets/Whalesharkking/nectarflow-features) (Hugging Face dataset) |
 
 ## What it predicts
 
@@ -119,7 +119,7 @@ One row per forecast day *t0* and horizon *h*. Each row stores **two dates**: th
 
 ## Feature store
 
-A Hugging Face dataset repo with versioned Parquet files (“poor man's feature store”). The repo id is set by `HF_DATASET_REPO`. TODO: link once the dataset is public.
+A Hugging Face dataset repo with versioned Parquet files (“poor man's feature store”). The repo id is set by `HF_DATASET_REPO`: [Whalesharkking/nectarflow-features](https://huggingface.co/datasets/Whalesharkking/nectarflow-features). The pipeline adds a dataset card with sources and licences on its first upload.
 
 | Path | Content | Key | Written |
 |---|---|---|---|

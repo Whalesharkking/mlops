@@ -159,7 +159,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 
 def main(argv: list[str] | None = None) -> int:
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    # Our own messages at INFO, third-party HTTP request logs only from WARNING on.
+    logging.basicConfig(level=logging.WARNING, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    logging.getLogger("nectarflow").setLevel(logging.INFO)
     args = parse_args(argv)
     settings = Settings.from_env()
     today = datetime.now(TZ).date()

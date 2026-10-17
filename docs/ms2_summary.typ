@@ -24,8 +24,8 @@
 
 // TODO: rewrite in own words once the pipeline runs; do not copy the README.
 
-- *What works now:* TODO. The feature pipeline runs every day at 08:30 UTC on GitHub Actions. It polls the HiveWatch regional weight, the scale count and the 00 UTC ECMWF run from Open-Meteo, archives the raw responses, and writes features and labels to the HF Hub dataset (TODO: link). Unit tests and a Docker build run in CI on every push.
-- *Backfill:* It runs from 14.03.2024 with the same code as the daily job (`--start`), about 950 issue dates with ten rows each; dataset revision TODO.
+- *What works now:* TODO. The feature pipeline runs every day at 08:30 UTC on GitHub Actions. It polls the HiveWatch regional weight, the scale count and the 00 UTC ECMWF run from Open-Meteo, archives the raw responses, and writes features and labels to the HF Hub dataset #link("https://huggingface.co/datasets/Whalesharkking/nectarflow-features")[`Whalesharkking/nectarflow-features`]. Lint, 21 unit tests, a Docker build and a Trivy scan run in CI on every push.
+- *Backfill:* It runs from 14.03.2024 with the same code as the daily job (`--start`), about 930 issue dates with ten rows each; dataset revision TODO.
 - *Key decisions:*
   - The momentum features end at $t_0 - 2$ (see A1).
   - Each row stores both its issue date and its target date, which makes the joins point-in-time correct.
@@ -33,10 +33,11 @@
   - The pipeline refuses to write an incomplete weather run and retries. On 15.10.2026 at 07:46 UTC, the same day's run held only 72 of 240 hours.
 - *What it cost:*
   - Momentum ending at $t_0 - 2$ means the newest day is not used as an input.
-  - The scale count exists only from 15.10.2026 on; there is no history for it.
+  - The scale count exists only from 17.10.2026 (first pipeline run) on; there is no history for it.
+  - Eight archived ECMWF runs are missing at Open-Meteo (05.-09.08.2025, 11.06., 23.06. and 19.09.2026). These issue dates have no features; the pipeline logs and skips them instead of writing a partial run.
   - 56 of 2813 days are jump-flagged; a momentum window that contains one stays empty for up to 14 days.
   - With momentum ending at $t_0 - 2$, the persistence baseline may also use only the last final day. Recomputed on 2026: persistence 0.31 at $h = 1$, climatology (±7 days, median) 0.29 at every $h$, so climatology is now the stronger baseline at all horizons (proposal: 0.24 and 0.32).
-- *Look at first:* `.github/workflows/feature-daily.yml`, `src/nectarflow/features/pipeline.py` and `compute.py`, the dataset on the HF Hub (TODO link), `tests/`.
+- *Look at first:* `.github/workflows/feature-daily.yml`, `src/nectarflow/features/pipeline.py` and `compute.py`, the dataset on the HF Hub (link above), `tests/`.
 
 = Response to MS1 reviews
 
@@ -50,10 +51,10 @@ All labels are from the MS1 editorial summary.
   - The regional `midnightvalues` cover only 8 days and come from the same provider, so they are not independent.
   - I chose *TrachtNet Bayern* (state bee institutes) instead. It is public, gives the daily corrected change per region with the scale count, and has data from 2011. Permission was asked there too: TODO.
 
-  If access is refused, only the source adapter changes. Files: `README.md` §Data sources, TODO adapter.
+  TrachtNet stays a documented plan: an adapter is only built if HiveWatch access is refused or breaks, and then only the ingest module changes. Files: `README.md` §Data sources.
 ]
 
-#entry("A1", "Training/serving skew in the momentum features", "Changed", "TODO")[
+#entry("A1", "Training/serving skew in the momentum features", "Changed", "97c80d1")[
   I measured the problem on 15.10.2026. TrachtNet listed about 357 scales for 13.10, but only 279 for the previous day. In HiveWatch, the previous day's midnight value was still missing at 09:00 UTC.
 
   The suggested comparison of as-of and final values over the backfill is not possible, because the API returns only final values for the past. I removed the skew by construction instead:
@@ -63,7 +64,7 @@ All labels are from the MS1 editorial summary.
   Files: `src/nectarflow/features/compute.py` (`momentum`), `labels.py` (`is_final`), `pipeline.py` (as-of snapshot in `raw/hivewatch/`).
 ]
 
-#entry("A2", "Changing scale population", "Partly", "TODO")[
+#entry("A2", "Changing scale population", "Partly", "97c80d1")[
   The set of scales does change; HiveWatch shows 364 for Nordalpen today but keeps no history. The effect on the label is small, though. The regional curve is an average of per-scale weight changes (it runs around 0 kg, not around absolute hive weights of about 60 kg), so a scale that joins or leaves shifts the average only by its own share. A single faulty scale is the larger risk: a +20 kg error moves the mean of 364 scales by about 0.05 kg, which is as large as a typical winter day.
 
   How I handle it:
@@ -75,7 +76,7 @@ All labels are from the MS1 editorial summary.
 ]
 
 #entry("A3", "Champion gate in winter", "Not yet", none)[
-  I agree; I will implement it in MS3. One model keeps forecasting all year. A challenger can become champion only from March to September, if it beats the champion by at least TODO kg/day. From October to February, the challenger is trained and logged but never promoted, because near-zero targets cannot separate models.
+  I agree; I will implement it in MS3. One model keeps forecasting all year. A challenger can become champion only from March to September, if it beats the champion by at least 0.01 kg/day MAE (about 3 % of the climatology MAE of 0.29, below the 10 % success margin, so real gains pass and noise does not; checked with the CV of B2). From October to February, the challenger is trained and logged but never promoted, because near-zero targets cannot separate models.
 ]
 
 #entry("B1", "Little training data for the later horizons", "Not yet", none)[

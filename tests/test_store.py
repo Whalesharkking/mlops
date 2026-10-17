@@ -42,11 +42,16 @@ def test_push_uploads_exactly_the_written_files_in_one_commit(tmp_path, monkeypa
         store.write(f"features/issue_date=2024-04-0{i + 1}.parquet", pd.DataFrame({"h": [1]}))
 
     assert store.push("backfill") is not None
-    assert store.api.created == [("user/nectarflow-features", "dataset", True)]
     assert len(store.api.commits) == 1
     message, uploaded = store.api.commits[0]
-    assert message == "backfill" and len(uploaded) == 5
+    assert message == "backfill"
+    assert len(uploaded) == 6 and fs.CARD_PATH in uploaded  # 5 files + dataset card, once
     assert store.push("nothing left") is None  # pending list is cleared
+
+    store.write(fs.LABELS_PATH, pd.DataFrame({"label": [0.1]}))
+    store.push("second")
+    assert store.api.created == [("user/nectarflow-features", "dataset", True)]  # repo created once
+    assert store.api.commits[1][1] == [fs.LABELS_PATH]
 
 
 def test_local_mode_never_touches_the_hub(tmp_path):
