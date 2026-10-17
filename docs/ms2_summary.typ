@@ -34,7 +34,7 @@
   - The scale count exists only from 17.10.2026 (first pipeline run) on, because HiveWatch keeps no history of it.
   - Eight archived ECMWF runs are missing at Open-Meteo (05.-09.08.2025, 11.06., 23.06. and 19.09.2026). These issue dates have no features. The pipeline logs and skips them instead of writing a partial run.
   - 56 of 2813 days are flagged as implausible jumps, mostly snow load in winter (see A2). A momentum window that contains such a day stays empty for up to 14 days.
-  - With momentum ending at $t_0 - 2$, the persistence baseline may also use only the last final day. Recomputed on the 2026 data, persistence reaches 0.31 at $h = 1$ and climatology (±7 days, median) 0.29 at every $h$, so climatology is now the stronger baseline at all horizons (the proposal had 0.24 and 0.32).
+  - For a fair comparison, the persistence baseline may also use only final days. This makes it weaker. On 2026 it now has an MAE of 0.31 at $h = 1$ (proposal 0.24). Climatology has 0.29 at every horizon and is now the baseline to beat.
 - *Look at first:* `.github/workflows/feature-daily.yml`, `src/nectarflow/features/pipeline.py` and `compute.py`, the dataset on the HF Hub (link above), `tests/`.
 
 = Response to MS1 reviews
