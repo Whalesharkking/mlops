@@ -1,13 +1,15 @@
 name: Feature pipeline (daily)
 
+# Main trigger: cron-job.org calls the workflow_dispatch API every day at 08:47 UTC, because
+# GitHub starts scheduled runs hours late. By then the 00 UTC ECMWF run is usually complete on
+# Open-Meteo (on 15.10.2026 it held only 72 of 240 hours at 07:46 UTC). The job waits up to
+# two more hours if it is not, and fails if the run never completes.
+# The GitHub schedule below is only a fallback in case cron-job.org does not fire. It does
+# nothing if today's features are already in the store.
 on:
-  schedule:
-    # 08:47 UTC: the 00 UTC ECMWF run is usually complete on Open-Meteo by then
-    # (on 15.10.2026 it held only 72 of 240 hours at 07:46 UTC). The job waits up to
-    # two more hours if it is not, and fails if the run never completes. The odd minute
-    # avoids the load peak at :00/:30, when GitHub delays scheduled runs the most.
-    - cron: "47 8 * * *"
   workflow_dispatch:
+  schedule:
+    - cron: "23 14 * * *"
 
 concurrency:
   group: feature-store
@@ -24,14 +26,29 @@ jobs:
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
       HF_DATASET_REPO: ${{ vars.HF_DATASET_REPO }}
     steps:
+      - name: Skip the fallback if today's features exist
+        id: today
+        if: github.event_name == 'schedule'
+        run: |
+          day=$(TZ=Europe/Zurich date +%F)
+          url="https://huggingface.co/datasets/$HF_DATASET_REPO/resolve/main/features/issue_date=$day.parquet"
+          if curl -sfI -o /dev/null "$url"; then
+            echo "features for $day are already in the store, nothing to do"
+            echo "done=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/checkout@v7
+        if: steps.today.outputs.done != 'true'
 
       - uses: astral-sh/setup-uv@v10.3.0
+        if: steps.today.outputs.done != 'true'
         with:
           enable-cache: true
 
       - name: Install locked dependencies
+        if: steps.today.outputs.done != 'true'
         run: uv sync --locked --no-dev
 
       - name: Run feature pipeline for today
+        if: steps.today.outputs.done != 'true'
         run: uv run --no-dev python -m nectarflow.features.pipeline --wait-minutes 120

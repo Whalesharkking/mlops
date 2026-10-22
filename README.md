@@ -78,7 +78,7 @@ Switzerland has no other open hive-scale API. I checked the Romandie, Ticino, Ag
 
 - **Endpoint:** `https://single-runs-api.open-meteo.com/v1/forecast`. It serves every archived run of **ECMWF IFS HRES (9 km)** since 14.03.2024 and needs no key. The data comes from [Open-Meteo](https://open-meteo.com/) under CC BY 4.0.
 - **Run used:** the 00 UTC run for four locations (Lucerne, Schwyz, Altdorf and Sarnen). The values are averaged and aggregated from hourly to daily.
-- **Run completeness:** at 07:46 UTC the same day's 00 UTC run was only partly available (72 of 240 h). The pipeline therefore runs at 08:47 UTC, refuses to write a run with fewer than 240 hours, and polls again every 10 minutes for up to two hours (see [Schedule](#schedule)).
+- **Run completeness:** at 07:46 UTC the same day's 00 UTC run was only partly available (72 of 240 h). The pipeline therefore starts at 08:47 UTC, refuses to write a run with fewer than 240 hours, and polls again every 10 minutes for up to two hours (see [Schedule](#schedule)).
 - **Rate limit:** one request with four locations counts as about four calls (the free tier allows 600 per minute and 5000 per hour). The backfill waits 1.5 s between runs and waits out HTTP 429.
 
 ## Label & features
@@ -169,7 +169,7 @@ Secrets live only in `.env` (gitignored) locally and in GitHub Secrets in CI. `H
 
 | Workflow | Trigger | What it does |
 |---|---|---|
-| [`feature-daily.yml`](.github/workflows/feature-daily.yml) | cron 08:47 UTC, daily (GitHub often starts scheduled runs later) | Polls HiveWatch and Open-Meteo, waits up to 2 h for a complete run, writes features, labels and raw data, pushes to the HF Hub. Fails if today's run never completes |
+| [`feature-daily.yml`](.github/workflows/feature-daily.yml) | daily at 08:47 UTC by [cron-job.org](https://cron-job.org) via the `workflow_dispatch` API, because GitHub starts scheduled runs hours late. A GitHub cron at 14:23 UTC is the fallback and does nothing if today's features already exist | Polls HiveWatch and Open-Meteo, waits up to 2 h for a complete run, writes features, labels and raw data, pushes to the HF Hub. Fails if today's run never completes |
 | [`backfill.yml`](.github/workflows/backfill.yml) | manual (`workflow_dispatch`) with start, end, force | Same module as the daily run, for a date range |
 | [`ci.yml`](.github/workflows/ci.yml) | push / pull request | Lint (ruff), unit tests, builds and smoke-tests the Docker image, Trivy scan (fails on fixable critical CVEs) |
 | [`render-pdf.yml`](.github/workflows/render-pdf.yml) | push to `docs/` | Renders the Typst docs to PDF |
