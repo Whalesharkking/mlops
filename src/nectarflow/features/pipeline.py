@@ -5,7 +5,7 @@
     python -m nectarflow.features.pipeline --local               # write to DATA_DIR only
 
 Each run polls the full HiveWatch history (one request), recomputes labels and the
-climatology, archives the as-of state of the recent series and the scale count, and then
+climatology, archives the recent labels as known today and the scale count, and then
 writes the feature rows of every requested issue date that is not in the store yet.
 """
 
@@ -58,11 +58,11 @@ def ingest_hive(store: fs.FeatureStore, today: date, session: requests.Session) 
     labels = daily_labels(series, asof=today)
     store.write(fs.LABELS_PATH, labels)
 
-    # As-of snapshot (review A1): the recent series exactly as polled today, so MS3 can
-    # measure how much the last days still change before they are final.
-    since = pd.Timestamp(today - timedelta(days=AS_OF_SNAPSHOT_DAYS), tz="UTC")
-    snapshot = series[series["ts"] >= since].assign(poll_date=today)
-    store.write(fs.poll_path(today), snapshot)
+    # As-of snapshot (review A1): the daily labels of the last 30 days as computed today, so
+    # MS3 can measure how much a day still changes before it is final. Only these derived
+    # daily values are stored, never the hourly series (HiveWatch permission of 19.10.2026).
+    snapshot = labels[labels["date"] >= today - timedelta(days=AS_OF_SNAPSHOT_DAYS)]
+    store.write(fs.asof_labels_path(today), snapshot.assign(poll_date=today))
 
     # Scale count (review A2). HiveWatch keeps no history, so we build it from today on.
     n_scales = fetch_n_scales(session)

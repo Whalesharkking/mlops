@@ -8,7 +8,7 @@ Layout (relative to the data directory and the repo root):
     climatology/climatology.parquet              per day of year, 2019-2023
     features/issue_date=YYYY-MM-DD.parquet       ten rows per issue date, written once
     raw/openmeteo/run=YYYY-MM-DD.parquet         archived hourly run, per location
-    raw/hivewatch/poll_date=YYYY-MM-DD.parquet   last 30 days of the weight series as polled
+    asof/labels/poll_date=YYYY-MM-DD.parquet     daily labels of the last 30 days as computed that day
     quality/n_scales.parquet                     scale count per poll date (history starts with the first run)
 """
 
@@ -31,8 +31,8 @@ def run_path(issue_date: date) -> str:
     return f"raw/openmeteo/run={issue_date.isoformat()}.parquet"
 
 
-def poll_path(poll_date: date) -> str:
-    return f"raw/hivewatch/poll_date={poll_date.isoformat()}.parquet"
+def asof_labels_path(poll_date: date) -> str:
+    return f"asof/labels/poll_date={poll_date.isoformat()}.parquet"
 
 
 LABELS_PATH = "labels/labels.parquet"
@@ -57,8 +57,9 @@ Written daily by a scheduled pipeline; every commit of this repo is one data ver
 ## Sources and licences
 
 - Hive weight: HiveWatch (www.hivewatch.ch), regional, intervention-filtered average of the
-  BienenSchweiz scale network (https://bienen.ch). Used with permission of HiveWatch
-  (19.10.2026) for this non-commercial study project; no data of single scales is stored.
+  BienenSchweiz scale network (https://bienen.ch). HiveWatch granted permission on 19.10.2026
+  for this non-commercial study project. Only derived regional daily values are published:
+  no raw data and no data of single scales. **The hive data may not be used commercially.**
 - Weather: archived ECMWF IFS HRES forecasts via Open-Meteo (https://open-meteo.com),
   CC BY 4.0.
 """

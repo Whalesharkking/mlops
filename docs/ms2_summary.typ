@@ -57,9 +57,9 @@ All labels are from the MS1 editorial summary, which covers every concern of bot
 
   The suggested comparison of as-of and final values over the backfill is not possible, because the API returns only final values for the past. I removed the skew by construction instead:
   - All momentum windows end at $t_0 - 2$, so training and serving see the same, final days.
-  - From now on, every run archives the last 30 days of the weight series exactly as polled (`raw/hivewatch/`). This gives the as-of values Reviewer A asked for, and in MS3 they show how much the last days still change before they are final.
+  - From now on, every run archives the daily labels of the last 30 days as computed on that day (`asof/labels/`). This gives the as-of values Reviewer A asked for. Momentum is a sum of daily labels, so the momentum as known at each $t_0$ can be rebuilt from them, and in MS3 they show how much the last days still change before they are final.
 
-  See `src/nectarflow/features/compute.py` (`momentum`), `labels.py` (`is_final`), `pipeline.py` (as-of snapshot in `raw/hivewatch/`).
+  See `src/nectarflow/features/compute.py` (`momentum`), `labels.py` (`is_final`), `pipeline.py` (as-of snapshot in `asof/labels/`).
 ]
 
 #entry("A2", "Changing scale population", "Partly", "97c80d1")[

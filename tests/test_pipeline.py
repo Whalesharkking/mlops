@@ -36,8 +36,13 @@ def test_backfill_and_daily_run_write_the_same_layout(tmp_path, fake_apis):
     rows = pd.read_parquet(tmp_path / fs.features_path(date(2024, 6, 1)))
     assert len(rows) == 10
     assert rows["mom_1d"].notna().all()
-    for rel in (fs.LABELS_PATH, fs.CLIMATOLOGY_PATH, fs.N_SCALES_PATH, fs.poll_path(today)):
+    for rel in (fs.LABELS_PATH, fs.CLIMATOLOGY_PATH, fs.N_SCALES_PATH, fs.asof_labels_path(today)):
         assert (tmp_path / rel).exists()
+
+    # the as-of snapshot holds daily labels only, never the hourly series (HiveWatch terms)
+    asof = pd.read_parquet(tmp_path / fs.asof_labels_path(today))
+    assert "ts" not in asof.columns and "weight" not in asof.columns
+    assert len(asof) == 30 and (asof["poll_date"] == today).all()
 
     # a second run skips what is already stored (idempotent daily job)
     again = pipeline.run(

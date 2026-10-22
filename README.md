@@ -111,7 +111,7 @@ One row per forecast day *t0* and horizon *h*. Each row stores **two dates**, th
 - Every feature row is point-in-time correct. It carries its issue date and target date and uses only what was known and final on the morning of *t0*.
 - Feature rows contain no label. Training joins `labels/labels.parquet` on `target_date` and keeps only rows with `is_final`.
 - The backfill runs the same code as the daily job.
-- The recent weight series is archived every day exactly as polled (`raw/hivewatch/`), so MS3 can measure how much the last days still change (review point A1).
+- The daily labels of the last 30 days are archived every day as computed on that day (`asof/labels/`), so MS3 can measure how much the last days still change (review point A1). The hourly series is only used in memory and never published, as agreed with HiveWatch.
 - The climatology uses only 2019-2023, so no training or test year enters it.
 
 **Split**
@@ -129,7 +129,7 @@ A Hugging Face dataset repo with versioned Parquet files (“poor man's feature 
 | `labels/labels.parquet` | `label`, `is_final`, `jump_flag`, `label_clean` per day since 2019 | `date` | every run (labels become final) |
 | `climatology/climatology.parquet` | median change per day of year, number of values | `doy` | every run |
 | `raw/openmeteo/run=YYYY-MM-DD.parquet` | the hourly 00 UTC run per location, as fetched | `location`, `time` | once per run |
-| `raw/hivewatch/poll_date=YYYY-MM-DD.parquet` | last 30 days of the weight series as polled | `poll_date`, `ts` | every run |
+| `asof/labels/poll_date=YYYY-MM-DD.parquet` | daily labels of the last 30 days as computed on the poll date | `poll_date`, `date` | every run |
 | `quality/n_scales.parquet` | scale count per poll date | `poll_date` | every run |
 
 Every upload is one commit on the Hub, so every run creates a new dataset revision. That revision is the data version logged with each model in MS3. A run first writes to `DATA_DIR` and then uploads the written files. The backfill uploads every 100 issue dates and on errors, and a rerun skips issue dates already in the store.
