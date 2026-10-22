@@ -56,9 +56,9 @@ Written daily by a scheduled pipeline; every commit of this repo is one data ver
 
 ## Sources and licences
 
-- Hive weight: regional, intervention-filtered average of the HiveWatch / BienenSchweiz
-  scale network (https://bienen.ch). Only regional aggregates are stored. Use for this
-  study project; permission for automated polling was requested from BienenSchweiz.
+- Hive weight: HiveWatch (www.hivewatch.ch), regional, intervention-filtered average of the
+  BienenSchweiz scale network (https://bienen.ch). Used with permission of HiveWatch
+  (19.10.2026) for this non-commercial study project; no data of single scales is stored.
 - Weather: archived ECMWF IFS HRES forecasts via Open-Meteo (https://open-meteo.com),
   CC BY 4.0.
 """

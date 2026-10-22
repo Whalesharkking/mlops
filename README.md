@@ -57,8 +57,9 @@ flowchart LR
 
 - **Source:** the public scale map on [bienen.ch](https://bienen.ch/imkerei/zucht/waagvoelker/), operated by BienenSchweiz with HiveWatch.
 - **Endpoint:** `GET https://app.hivewatch.net/region/11/averages?sensorType=ext_weight&startdate=<epoch ms>&enddate=<epoch ms>`. It needs no login and returns hourly, intervention-filtered weight for region 11 ("Nordalpen").
-- **Permission:** the endpoint serves the public map and is not a documented API. On **15.10.2026** I asked BienenSchweiz (cc HiveWatch) in writing whether automated daily polling and publishing derived regional daily values are allowed.
-  - **Status:** no reply received (last checked 17.10.2026). Until an answer arrives, polling stays at one request per day plus the scale count, the data is credited, and only regional aggregates are published. If access is refused, the TrachtNet fallback below replaces this source.
+- **Permission:** the endpoint serves the public map and is not a documented API. On 15.10.2026 I asked BienenSchweiz and HiveWatch in writing. On **19.10.2026 HiveWatch granted permission** for this non-commercial project, based on clause 12 of its terms (anonymised data may be shared for research).
+  - Automated polling of the regional averages during the project and a one-time download of the history from 2019 are allowed.
+  - Derived regional daily values may be shown in this repository and on the demo page. No raw data and no data of single scales may be published, use must stay non-commercial, and the source must be credited as "HiveWatch ([www.hivewatch.ch](https://www.hivewatch.ch))".
 - **Polling:** once per day, plus a one-time history download, and only for the duration of the project (until about January 2027).
 
 ### Fallback options for the hive weight (tested 15.10.2026)
@@ -69,7 +70,7 @@ flowchart LR
 | [Hiveeyes](https://swarm.hiveeyes.org) | Open API (no key). There are 332 public dashboards, none in Switzerland, and the sampled nodes are inactive (e.g. last data May 2023). It serves raw single-hive weight that still includes interventions | No |
 | [TrachtNet](https://www.bienenkunde.rlp.de) (DLR Rheinland-Pfalz & LWG Bayern) | Public web portal without login. It provides daily **corrected** weight change per region and the **number of scales per day**. Data runs from 2011 and is fresh up to the previous day. Bayern had about 127 scales in 2019, about 250 in 2025 and about 335 in 2026. Switzerland has only 1 to 4 scales | **Yes**, Bayern / Oberbayern |
 
-A permission request was also sent to TrachtNet (trachtnet@dlr.rlp.de) on 15.10.2026. No reply has been received so far (last checked 17.10.2026). The adapter is built only if HiveWatch access is refused or breaks.
+A permission request was also sent to TrachtNet (trachtnet@dlr.rlp.de) on 15.10.2026. No reply has been received so far (last checked 17.10.2026). Since HiveWatch granted access, the adapter is built only if that access breaks.
 
 Switzerland has no other open hive-scale API. I checked the Romandie, Ticino, Agroscope and opendata.swiss.
 
@@ -214,6 +215,6 @@ Milestones are tagged in Git (`ms2`, `ms3`, …).
 
 ## Credits
 
-- **Hive data:** HiveWatch / BienenSchweiz ([bienen.ch](https://bienen.ch)), regional averages of the Waagvölker network.
+- **Hive data:** HiveWatch ([www.hivewatch.ch](https://www.hivewatch.ch)), regional averages of the BienenSchweiz scale network ([bienen.ch](https://bienen.ch)), used with permission of 19.10.2026.
 - **Weather forecasts:** [Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0), ECMWF IFS HRES.
 - **Fallback hive data:** TrachtNet Deutschland (DLR Rheinland-Pfalz, LWG Bayern).

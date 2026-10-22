@@ -41,15 +41,15 @@
 
 All labels are from the MS1 editorial summary, which covers every concern of both reviews. The Must point comes first.
 
-#entry("A4", "Permission to poll the bienen.ch endpoint", "Partly", none)[
-  On 15.10.2026 I asked BienenSchweiz (cc HiveWatch) in writing whether daily polling and showing derived regional values are allowed. No reply so far (last checked 17.10.2026). Until then the pipeline polls once a day, credits the source and publishes only regional aggregates.
+#entry("A4", "Permission to poll the bienen.ch endpoint", "Changed", none)[
+  On 15.10.2026 I asked BienenSchweiz and HiveWatch in writing. On 19.10.2026 HiveWatch granted permission for this non-commercial project. Daily polling and the history download from 2019 are allowed. Derived regional daily values may be shown in the repo and on the demo page, without raw data or data of single scales and with the source credited as "HiveWatch (www.hivewatch.ch)". The terms are recorded in the section Data sources in `README.md` and in the dataset card.
 
-  I tested the fallbacks the same day:
+  On 15.10.2026 I also tested the fallbacks:
   - *Hiveeyes* has no Swiss nodes and offers only raw single-hive weight, so it is not usable.
   - The regional `midnightvalues` cover only 8 days and come from the same provider, so they are not independent.
-  - I chose *TrachtNet Bayern* (state bee institutes) instead. It is public, gives the daily corrected change per region with the scale count, and has data from 2011. Permission was asked there too, also without reply so far.
+  - I chose *TrachtNet Bayern* (state bee institutes) instead. It is public, gives the daily corrected change per region with the scale count, and has data from 2011. Permission was asked there too, without reply so far.
 
-  TrachtNet stays a documented plan. An adapter is only built if HiveWatch access is refused or breaks, and then only the ingest module changes. See the section Data sources in `README.md`.
+  TrachtNet stays a documented plan. An adapter is only built if HiveWatch access breaks, and then only the ingest module changes.
 ]
 
 #entry("A1", "Training/serving skew in the momentum features", "Changed", "97c80d1")[
