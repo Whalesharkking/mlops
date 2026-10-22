@@ -126,7 +126,6 @@ class FeatureStore:
         if not self._repo_ready:
             self.api.create_repo(self.repo_id, repo_type="dataset", exist_ok=True)
             self._repo_ready = True
-        # The card goes along with every push, so a changed card text reaches the Hub.
         (self.data_dir / CARD_PATH).write_text(DATASET_CARD)
         files.append(CARD_PATH)
         info = self.api.upload_folder(

@@ -169,12 +169,22 @@ Secrets live only in `.env` (gitignored) locally and in GitHub Secrets in CI. `H
 
 | Workflow | Trigger | What it does |
 |---|---|---|
-| [`feature-daily.yml`](.github/workflows/feature-daily.yml) | daily at 08:47 UTC by [cron-job.org](https://cron-job.org) via the `workflow_dispatch` API, because GitHub starts scheduled runs hours late. A GitHub cron at 14:23 UTC is the fallback and does nothing if today's features already exist | Polls HiveWatch and Open-Meteo, waits up to 2 h for a complete run, writes features, labels and raw data, pushes to the HF Hub. Fails if today's run never completes |
+| [`feature-daily.yml`](.github/workflows/feature-daily.yml) | daily 08:47 UTC by cron-job.org, fallback cron 14:23 UTC | Polls HiveWatch and Open-Meteo, waits up to 2 h for a complete run, writes features, labels and raw data, pushes to the HF Hub. Fails if today's run never completes |
 | [`backfill.yml`](.github/workflows/backfill.yml) | manual (`workflow_dispatch`) with start, end, force | Same module as the daily run, for a date range |
 | [`ci.yml`](.github/workflows/ci.yml) | push / pull request | Lint (ruff), unit tests, builds and smoke-tests the Docker image, Trivy scan (fails on fixable critical CVEs) |
 | [`render-pdf.yml`](.github/workflows/render-pdf.yml) | push to `docs/` | Renders the Typst docs to PDF |
 
 The daily and backfill jobs share the `concurrency` group `feature-store`, so they never write at the same time.
+
+**How the daily run is started.** GitHub starts scheduled runs hours late. [cron-job.org](https://cron-job.org) therefore triggers the workflow every day at 08:47 UTC through the GitHub API.
+
+```
+POST https://api.github.com/repos/Whalesharkking/mlops/actions/workflows/feature-daily.yml/dispatches
+Authorization: Bearer <fine-grained token with Actions read/write on this repo only>
+Body: {"ref": "main"}
+```
+
+The token is stored only at cron-job.org. The GitHub cron at 14:23 UTC covers days on which cron-job.org does not fire. It stops at once if today's features are already in the store.
 
 ## Tests
 

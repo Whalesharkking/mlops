@@ -1,11 +1,6 @@
 name: Feature pipeline (daily)
 
-# Main trigger: cron-job.org calls the workflow_dispatch API every day at 08:47 UTC, because
-# GitHub starts scheduled runs hours late. By then the 00 UTC ECMWF run is usually complete on
-# Open-Meteo (on 15.10.2026 it held only 72 of 240 hours at 07:46 UTC). The job waits up to
-# two more hours if it is not, and fails if the run never completes.
-# The GitHub schedule below is only a fallback in case cron-job.org does not fire. It does
-# nothing if today's features are already in the store.
+# Started at 08:47 UTC by cron-job.org (see README, Schedule). The cron is only a fallback.
 on:
   workflow_dispatch:
   schedule:

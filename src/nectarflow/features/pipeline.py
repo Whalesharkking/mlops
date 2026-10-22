@@ -58,9 +58,7 @@ def ingest_hive(store: fs.FeatureStore, today: date, session: requests.Session) 
     labels = daily_labels(series, asof=today)
     store.write(fs.LABELS_PATH, labels)
 
-    # As-of snapshot (review A1): the daily labels of the last 30 days as computed today, so
-    # MS3 can measure how much a day still changes before it is final. Only these derived
-    # daily values are stored, never the hourly series (HiveWatch permission of 19.10.2026).
+    # As-of snapshot (review A1): the recent daily labels as known today.
     snapshot = labels[labels["date"] >= today - timedelta(days=AS_OF_SNAPSHOT_DAYS)]
     store.write(fs.asof_labels_path(today), snapshot.assign(poll_date=today))
 
