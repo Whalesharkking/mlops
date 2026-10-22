@@ -48,20 +48,23 @@ tags: [time-series, beekeeping, weather, feature-store]
 
 # Nectarflow feature store
 
-Feature store of a student project (HSLU I.BA_MLOPS HS26): a 10-day forecast of the daily net
-weight change of the monitored bee colonies in the HiveWatch region *Nordalpen*.
-Code, schema and pipeline: https://github.com/Whalesharkking/mlops
+This is the feature store of a student project at HSLU (I.BA_MLOPS HS26). The project forecasts
+the daily net weight change of the monitored bee colonies in the HiveWatch region *Nordalpen*
+for the next ten days. Code, schema and pipeline are on GitHub at
+https://github.com/Whalesharkking/mlops.
 
-Written daily by a scheduled pipeline; every commit of this repo is one data version.
+A scheduled pipeline writes to this dataset every day. Every commit is one data version.
 
 ## Sources and licences
 
-- Hive weight: HiveWatch (www.hivewatch.ch), regional, intervention-filtered average of the
-  BienenSchweiz scale network (https://bienen.ch). HiveWatch granted permission on 19.10.2026
-  for this non-commercial study project. Only derived regional daily values are published:
-  no raw data and no data of single scales. **The hive data may not be used commercially.**
-- Weather: archived ECMWF IFS HRES forecasts via Open-Meteo (https://open-meteo.com),
-  CC BY 4.0.
+**Hive weight.** The source is HiveWatch (www.hivewatch.ch), with the regional and
+intervention-filtered average of the BienenSchweiz scale network (https://bienen.ch).
+HiveWatch granted permission on 19.10.2026 for this non-commercial study project. The dataset
+contains only derived regional daily values, no raw data and no data of single scales.
+The hive data may not be used commercially.
+
+**Weather.** Archived ECMWF IFS HRES forecasts via Open-Meteo (https://open-meteo.com),
+licensed under CC BY 4.0.
 """
 
 
@@ -123,9 +126,9 @@ class FeatureStore:
         if not self._repo_ready:
             self.api.create_repo(self.repo_id, repo_type="dataset", exist_ok=True)
             self._repo_ready = True
-        if not self.exists(CARD_PATH):
-            (self.data_dir / CARD_PATH).write_text(DATASET_CARD)
-            files.append(CARD_PATH)
+        # The card goes along with every push, so a changed card text reaches the Hub.
+        (self.data_dir / CARD_PATH).write_text(DATASET_CARD)
+        files.append(CARD_PATH)
         info = self.api.upload_folder(
             repo_id=self.repo_id,
             repo_type="dataset",

@@ -111,7 +111,7 @@ One row per forecast day *t0* and horizon *h*. Each row stores **two dates**, th
 - Every feature row is point-in-time correct. It carries its issue date and target date and uses only what was known and final on the morning of *t0*.
 - Feature rows contain no label. Training joins `labels/labels.parquet` on `target_date` and keeps only rows with `is_final`.
 - The backfill runs the same code as the daily job.
-- The daily labels of the last 30 days are archived every day as computed on that day (`asof/labels/`), so MS3 can measure how much the last days still change (review point A1). The hourly series is only used in memory and never published, as agreed with HiveWatch.
+- The daily labels of the last 30 days are archived every day as computed on that day (`asof/labels/`), so MS3 can measure how much the last days still change (review point A1). The hourly series is only used in memory and is not published, as agreed with HiveWatch.
 - The climatology uses only 2019-2023, so no training or test year enters it.
 
 **Split**
