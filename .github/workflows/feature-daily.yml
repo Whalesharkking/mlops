@@ -1,6 +1,6 @@
 name: Feature pipeline (daily)
 
-# Started at 08:47 UTC by cron-job.org (see README, Schedule). The cron is only a fallback.
+# Started at 08:30 UTC by cron-job.org (see README, Schedule). The cron is only a fallback.
 on:
   workflow_dispatch:
   schedule:

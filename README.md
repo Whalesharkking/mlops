@@ -57,10 +57,10 @@ flowchart LR
 
 - **Source:** the public scale map on [bienen.ch](https://bienen.ch/imkerei/zucht/waagvoelker/), operated by BienenSchweiz with HiveWatch.
 - **Endpoint:** `GET https://app.hivewatch.net/region/11/averages?sensorType=ext_weight&startdate=<epoch ms>&enddate=<epoch ms>`. It needs no login and returns hourly, intervention-filtered weight for region 11 ("Nordalpen").
-- **Permission:** the endpoint serves the public map and is not a documented API. On 15.10.2026 I asked BienenSchweiz and HiveWatch in writing. On **19.10.2026 HiveWatch granted permission** for this non-commercial project, based on clause 12 of its terms (anonymised data may be shared for research).
-  - Automated polling of the regional averages during the project and a one-time download of the history from 2019 are allowed.
-  - Derived regional daily values may be shown in this repository and on the demo page. No raw data and no data of single scales may be published, use must stay non-commercial, and the source must be credited as "HiveWatch ([www.hivewatch.ch](https://www.hivewatch.ch))".
-- **Polling:** once per day, plus a one-time history download, and only for the duration of the project (until about January 2027).
+- **Permission:** I asked HiveWatch and BienenSchweiz in writing on 15.10.2026. **HiveWatch granted permission on 19.10.2026** for this non-commercial project.
+  - Daily polling of the regional averages and a download of the history from 2019 are allowed for the duration of the project (until about January 2027).
+  - Derived regional daily values may be shown in this repository and on the demo page.
+  - Conditions are no raw data, no data of single scales, non-commercial use and the source credit "HiveWatch ([www.hivewatch.ch](https://www.hivewatch.ch))".
 
 ### Fallback options for the hive weight (tested 15.10.2026)
 
@@ -70,7 +70,7 @@ flowchart LR
 | [Hiveeyes](https://swarm.hiveeyes.org) | Open API (no key). There are 332 public dashboards, none in Switzerland, and the sampled nodes are inactive (e.g. last data May 2023). It serves raw single-hive weight that still includes interventions | No |
 | [TrachtNet](https://www.bienenkunde.rlp.de) (DLR Rheinland-Pfalz & LWG Bayern) | Public web portal without login. It provides daily **corrected** weight change per region and the **number of scales per day**. Data runs from 2011 and is fresh up to the previous day. Bayern had about 127 scales in 2019, about 250 in 2025 and about 335 in 2026. Switzerland has only 1 to 4 scales | **Yes**, Bayern / Oberbayern |
 
-A permission request was also sent to TrachtNet (trachtnet@dlr.rlp.de) on 15.10.2026. No reply has been received so far (last checked 17.10.2026). Since HiveWatch granted access, the adapter is built only if that access breaks.
+TrachtNet was also asked on 15.10.2026 (no reply yet). Its adapter is only built if the HiveWatch access breaks.
 
 Switzerland has no other open hive-scale API. I checked the Romandie, Ticino, Agroscope and opendata.swiss.
 
@@ -78,7 +78,7 @@ Switzerland has no other open hive-scale API. I checked the Romandie, Ticino, Ag
 
 - **Endpoint:** `https://single-runs-api.open-meteo.com/v1/forecast`. It serves every archived run of **ECMWF IFS HRES (9 km)** since 14.03.2024 and needs no key. The data comes from [Open-Meteo](https://open-meteo.com/) under CC BY 4.0.
 - **Run used:** the 00 UTC run for four locations (Lucerne, Schwyz, Altdorf and Sarnen). The values are averaged and aggregated from hourly to daily.
-- **Run completeness:** at 07:46 UTC the same day's 00 UTC run was only partly available (72 of 240 h). The pipeline therefore starts at 08:47 UTC, refuses to write a run with fewer than 240 hours, and polls again every 10 minutes for up to two hours (see [Schedule](#schedule)).
+- **Run completeness:** at 07:46 UTC the same day's 00 UTC run was only partly available (72 of 240 h). The pipeline therefore starts at 08:30 UTC, refuses to write a run with fewer than 240 hours, and polls again every 10 minutes for up to two hours (see [Schedule](#schedule)).
 - **Rate limit:** one request with four locations counts as about four calls (the free tier allows 600 per minute and 5000 per hour). The backfill waits 1.5 s between runs and waits out HTTP 429.
 
 ## Label & features
@@ -169,14 +169,14 @@ Secrets live only in `.env` (gitignored) locally and in GitHub Secrets in CI. `H
 
 | Workflow | Trigger | What it does |
 |---|---|---|
-| [`feature-daily.yml`](.github/workflows/feature-daily.yml) | daily 08:47 UTC by cron-job.org, fallback cron 14:23 UTC | Polls HiveWatch and Open-Meteo, waits up to 2 h for a complete run, writes features, labels and raw data, pushes to the HF Hub. Fails if today's run never completes |
+| [`feature-daily.yml`](.github/workflows/feature-daily.yml) | daily 08:30 UTC by cron-job.org, fallback cron 14:23 UTC | Polls HiveWatch and Open-Meteo, waits up to 2 h for a complete run, writes features, labels and raw data, pushes to the HF Hub. Fails if today's run never completes |
 | [`backfill.yml`](.github/workflows/backfill.yml) | manual (`workflow_dispatch`) with start, end, force | Same module as the daily run, for a date range |
 | [`ci.yml`](.github/workflows/ci.yml) | push / pull request | Lint (ruff), unit tests, builds and smoke-tests the Docker image, Trivy scan (fails on fixable critical CVEs) |
 | [`render-pdf.yml`](.github/workflows/render-pdf.yml) | push to `docs/` | Renders the Typst docs to PDF |
 
 The daily and backfill jobs share the `concurrency` group `feature-store`, so they never write at the same time.
 
-**How the daily run is started.** GitHub starts scheduled runs hours late. [cron-job.org](https://cron-job.org) therefore triggers the workflow every day at 08:47 UTC through the GitHub API.
+**How the daily run is started.** GitHub starts scheduled runs hours late. [cron-job.org](https://cron-job.org) therefore triggers the workflow every day at 08:30 UTC through the GitHub API.
 
 ```
 POST https://api.github.com/repos/Whalesharkking/mlops/actions/workflows/feature-daily.yml/dispatches
