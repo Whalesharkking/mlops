@@ -2,10 +2,11 @@ name: Feature pipeline (daily)
 
 on:
   schedule:
-    # 08:30 UTC: the 00 UTC ECMWF run is usually complete on Open-Meteo by then
+    # 08:47 UTC: the 00 UTC ECMWF run is usually complete on Open-Meteo by then
     # (on 15.10.2026 it held only 72 of 240 hours at 07:46 UTC). The job waits up to
-    # two more hours if it is not, and fails if the run never completes.
-    - cron: "30 8 * * *"
+    # two more hours if it is not, and fails if the run never completes. The odd minute
+    # avoids the load peak at :00/:30, when GitHub delays scheduled runs the most.
+    - cron: "47 8 * * *"
   workflow_dispatch:
 
 concurrency:
