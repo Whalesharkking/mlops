@@ -23,8 +23,8 @@ build-backend = "uv_build"
 
 [tool.uv]
 # One uv version everywhere: locally, in GitHub Actions (setup-uv reads this) and in the
-# Dockerfile (COPY --from=ghcr.io/astral-sh/uv:0.12.19).
-required-version = "==0.12.19"
+# Dockerfile (COPY --from=ghcr.io/astral-sh/uv:0.12.24).
+required-version = "==0.12.24"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
