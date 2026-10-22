@@ -23,7 +23,7 @@
 = What I achieved in this milestone
 
 - *What works now:* The feature pipeline runs on its own. Every morning a GitHub Actions job fetches the latest hive weights and the new weather forecast. It builds the features for the next ten days and saves them with the labels in my feature store on Hugging Face (#link("https://huggingface.co/datasets/Whalesharkking/nectarflow-features")[`Whalesharkking/nectarflow-features`]). If the forecast is not complete yet, the job waits for it. Every push also runs tests, a linter, a Docker build and a security scan.
-- *Backfill:* It runs from 14.03.2024 with the same code as the daily job (`--start`), 940 issue dates (9,400 rows, 14.03.2024 to 17.10.2026) in one GitHub Actions run of 27 minutes. The current dataset revision is `3f5d29c`.
+- *Backfill:* It runs from 14.03.2024 with the same code as the daily job (`--start`), 940 issue dates (9,400 rows, 14.03.2024 to 17.10.2026) in one GitHub Actions run of 27 minutes. The backfill is in dataset revision `94f2481`.
 - *Key decisions:*
   - The momentum features end at $t_0 - 2$ (see A1).
   - Each row stores both its issue date and its target date, which makes the joins point-in-time correct.
