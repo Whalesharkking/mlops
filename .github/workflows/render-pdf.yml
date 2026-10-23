@@ -24,11 +24,12 @@ jobs:
 
       # proposal.typ is the frozen MS1 submission, its PDF is not rebuilt.
       # SOURCE_DATE_EPOCH (last commit of the source) makes the PDF reproducible,
-      # so an unchanged source gives an identical PDF and no bot commit.
+      # so an unchanged source gives an identical PDF and no bot commit. Only the fonts
+      # bundled with Typst are used, so the PDF is the same locally and in CI.
       - name: Compile *.typ files
         run: |
           find docs -type f -name '*.typ' ! -name 'proposal.typ' -print0 | while IFS= read -r -d '' file; do
-            SOURCE_DATE_EPOCH=$(git log -1 --format=%ct -- "$file") typst compile "$file" "${file%.typ}.pdf"
+            SOURCE_DATE_EPOCH=$(git log -1 --format=%ct -- "$file") typst compile --ignore-system-fonts "$file" "${file%.typ}.pdf"
           done
 
       - name: Commit rendered PDFs
