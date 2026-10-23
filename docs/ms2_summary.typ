@@ -29,20 +29,21 @@
   - Each row stores both its issue date and its target date, which makes the joins point-in-time correct.
   - The data is versioned by HF Hub dataset revisions instead of DVC, because every write already is a Git commit.
   - The pipeline refuses to write an incomplete weather run and retries. On 15.10.2026 at 07:46 UTC, the same day's run held only 72 of 240 hours.
+  - cron-job.org starts the daily run at 08:30 UTC, because GitHub started scheduled runs up to seven hours late. A GitHub cron stays as fallback and stops at once if today's features already exist.
 - *What it cost:*
   - Momentum ending at $t_0 - 2$ means the newest day is not used as an input.
   - The scale count exists only from 17.10.2026 (first pipeline run) on, because HiveWatch keeps no history of it.
   - Eight archived ECMWF runs are missing at Open-Meteo (05.-09.08.2025, 11.06., 23.06. and 19.09.2026). These issue dates have no features. The pipeline logs and skips them instead of writing a partial run.
   - 56 of 2813 days are flagged as implausible jumps, mostly snow load in winter (see A2). A momentum window that contains such a day stays empty for up to 14 days.
-  - For a fair comparison, the persistence baseline may also use only final days. This makes it weaker. On 2026 it now has an MAE of 0.31 at $h = 1$ (proposal 0.24). Climatology has 0.29 at every horizon and is now the baseline to beat.
+  - The persistence baseline gets weaker, because it may also use only final days (see A1).
 - *Look at first:* `.github/workflows/feature-daily.yml`, `src/nectarflow/features/pipeline.py` and `compute.py`, the dataset on the HF Hub (link above), `tests/`.
 
 = Response to MS1 reviews
 
-All labels are from the MS1 editorial summary, which covers every concern of both reviews. The Must point comes first.
+All labels are from the MS1 editorial summary, which covers every concern of both reviews. It lists no E points and no points marked as not confirmed. The Must point comes first.
 
-#entry("A4", "Permission to poll the bienen.ch endpoint", "Changed", none)[
-  On 15.10.2026 I asked BienenSchweiz and HiveWatch in writing. On 19.10.2026 HiveWatch granted permission for this non-commercial project. Daily polling and the history download from 2019 are allowed. Derived regional daily values may be shown in the repo and on the demo page, without raw data or data of single scales and with the source credited as "HiveWatch (www.hivewatch.ch)". The terms are recorded in the section Data sources in `README.md` and in the dataset card.
+#entry("A4", "Permission to poll the bienen.ch endpoint", "Changed", "27eddb4, 623a2b6")[
+  On 15.10.2026 I asked BienenSchweiz and HiveWatch in writing. On 19.10.2026 HiveWatch granted permission for this non-commercial project. Daily polling and the history download from 2019 are allowed. Derived regional daily values may be shown in the repo and on the demo page, without raw data or data of single scales and with the source credited as "HiveWatch (www.hivewatch.ch)". The terms are recorded in the section Data sources in `README.md` and in the dataset card. To meet them, the as-of archive now keeps daily labels instead of the hourly series, and the feature store was rebuilt without any raw HiveWatch data.
 
   On 15.10.2026 I also tested the fallbacks:
   - *Hiveeyes* has no Swiss nodes and offers only raw single-hive weight, so it is not usable.
@@ -52,12 +53,14 @@ All labels are from the MS1 editorial summary, which covers every concern of bot
   TrachtNet stays a documented plan. An adapter is only built if HiveWatch access breaks, and then only the ingest module changes.
 ]
 
-#entry("A1", "Training/serving skew in the momentum features", "Changed", "97c80d1")[
+#entry("A1", "Training/serving skew in the momentum features", "Changed", "97c80d1, 623a2b6")[
   I measured the problem on 15.10.2026. TrachtNet listed about 357 scales for 13.10, but only 279 for the previous day. In HiveWatch, the previous day's midnight value was still missing at 09:00 UTC.
 
   The suggested comparison of as-of and final values over the backfill is not possible, because the API returns only final values for the past. I removed the skew by construction instead:
   - All momentum windows end at $t_0 - 2$, so training and serving see the same, final days.
   - From now on, every run archives the daily labels of the last 30 days as computed on that day (`asof/labels/`). This gives the as-of values Reviewer A asked for. Momentum is a sum of daily labels, so the momentum as known at each $t_0$ can be rebuilt from them, and in MS3 they show how much the last days still change before they are final.
+
+  This changes the success criterion. The proposal compared against persistence with MAE 0.24 at $h = 1$. For a fair comparison, persistence may now also use only final days, which gives 0.31 on 2026. Climatology has 0.29 at every horizon and is now the stronger baseline at all horizons. The rule itself stays the same: beat the stronger baseline by 10 % for $h = 1…5$ and match it for $h = 6…10$.
 
   See `src/nectarflow/features/compute.py` (`momentum`), `labels.py` (`is_final`), `pipeline.py` (as-of snapshot in `asof/labels/`).
 ]
@@ -68,9 +71,9 @@ All labels are from the MS1 editorial summary, which covers every concern of bot
   How I handle it:
   - The current count is stored daily as `n_scales`.
   - Days with an implausible change (more than 2.5 kg in April to July, more than 1.0 kg otherwise) get a `jump_flag` and are excluded from the momentum and the climatology.
-  - The climatology uses the median.
+  - The climatology uses the median instead of the mean planned in the proposal, so single faulty days have less weight.
 
-  56 of 2813 days since 2019 are flagged, none in the flow season, 21 in January 2021 (snow). See `src/nectarflow/features/labels.py`, `quality/n_scales.parquet`.
+  56 of 2813 days since 2019 are flagged, none in the flow season, 21 in January 2021 (snow). Still open is using `n_scales` as a signal, because its history only starts on 17.10.2026. See `src/nectarflow/features/labels.py`, `quality/n_scales.parquet`.
 ]
 
 #entry("A3", "Champion gate in winter", "Not yet", none)[
