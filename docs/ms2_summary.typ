@@ -54,11 +54,13 @@ All labels are from the MS1 editorial summary, which covers every concern of bot
 ]
 
 #entry("A1", "Training/serving skew in the momentum features", "Changed", "97c80d1, 623a2b6")[
-  I measured the problem on 15.10.2026. TrachtNet listed about 357 scales for 13.10, but only 279 for the previous day. In HiveWatch, the previous day's midnight value was still missing at 09:00 UTC.
+  The problem is real in the HiveWatch data. On 15.10.2026 at 09:00 UTC, the midnight value of the previous day was still missing.
 
   The suggested comparison of as-of and final values over the backfill is not possible, because the API returns only final values for the past. I removed the skew by construction instead:
   - All momentum windows end at $t_0 - 2$, so training and serving see the same, final days.
-  - From now on, every run archives the daily labels of the last 30 days as computed on that day (`asof/labels/`). This gives the as-of values Reviewer A asked for. Momentum is a sum of daily labels, so the momentum as known at each $t_0$ can be rebuilt from them. The two-day lag is an assumption, and in MS3 this archive shows whether it is long enough.
+  - From now on, every run archives the daily labels of the last 30 days as computed on that day (`asof/labels/`). This gives the as-of values Reviewer A asked for. Momentum is a sum of daily labels, so the momentum as known at each $t_0$ can be rebuilt from them.
+
+  The archive already supports the two-day lag. From 17.10. to 23.10.2026, the label of the previous day was still missing at poll time on 2 of 7 days. The label of two days before was always there, and no label changed after it first appeared. Seven days are not proof yet, so the archive keeps measuring in MS3.
 
   This changes the success criterion. The proposal compared against persistence with MAE 0.24 at $h = 1$. For a fair comparison, persistence may now also use only final days, which gives 0.31 on 2026. Climatology has 0.29 at every horizon and is now the stronger baseline at all horizons. The rule itself stays the same. The model must beat the stronger baseline by 10 % for $h = 1…5$ and match it for $h = 6…10$.
 
