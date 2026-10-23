@@ -19,10 +19,10 @@ A positive value means the colonies collect more nectar than they consume. A neg
 
 The model must beat two baselines on per-horizon MAE:
 
-- **Persistence:** every coming day repeats the last complete day.
-- **Climatology:** the usual change for that date, averaged over 2019-2023 (±7 days).
+- **Persistence.** Every coming day repeats the last final day (t0−2).
+- **Climatology.** The median change for that date over 2019-2023 (±7 days).
 
-The target is at least 10 % better than the better baseline for *h* = 1…5, and at least equal for *h* = 6…10.
+The target is at least 10 % better than the better baseline for *h* = 1…5, and at least equal for *h* = 6…10. On the 2026 data, climatology (MAE 0.29) is the better baseline at every horizon. Persistence reaches 0.31 at *h* = 1.
 
 ## Architecture
 
@@ -30,13 +30,13 @@ The target is at least 10 % better than the better baseline for *h* = 1…5, and
 flowchart LR
   subgraph src["Live data"]
     H["HiveWatch API<br/>regional weight, nightly"]
-    T["TrachtNet Bayern<br/>fallback"]
+    T["TrachtNet Bayern<br/>fallback, not built"]
     O["Open-Meteo Single Runs<br/>ECMWF IFS, 10 days"]
   end
   H --> FP
   T -.->|"fallback"| FP
   O --> FP
-  FP["Feature pipeline<br/>daily + backfill<br/>GitHub Actions"] -->|"features + labels"| FS[("Feature store<br/>Parquet on HF Hub")]
+  FP["Feature pipeline<br/>daily 08:30 UTC + backfill<br/>GitHub Actions"] -->|"features + labels"| FS[("Feature store<br/>Parquet on HF Hub")]
   FS -->|"read"| TP["Training pipeline<br/>weekly, LightGBM"]
   TP -->|"challenger"| MR[("Model registry<br/>W&B")]
   MR -->|"load champion"| IP["Inference pipeline<br/>daily batch"]
@@ -55,9 +55,9 @@ flowchart LR
 
 ### Hive weight from HiveWatch / BienenSchweiz (primary)
 
-- **Source:** the public scale map on [bienen.ch](https://bienen.ch/imkerei/zucht/waagvoelker/), operated by BienenSchweiz with HiveWatch.
-- **Endpoint:** `GET https://app.hivewatch.net/region/11/averages?sensorType=ext_weight&startdate=<epoch ms>&enddate=<epoch ms>`. It needs no login and returns hourly, intervention-filtered weight for region 11 ("Nordalpen").
-- **Permission:** I asked HiveWatch and BienenSchweiz in writing on 15.10.2026. **HiveWatch granted permission on 19.10.2026** for this non-commercial project.
+- **Source.** The public scale map on [bienen.ch](https://bienen.ch/imkerei/zucht/waagvoelker/), operated by BienenSchweiz with HiveWatch.
+- **Endpoint.** `GET https://app.hivewatch.net/region/11/averages?sensorType=ext_weight&startdate=<epoch ms>&enddate=<epoch ms>`. It needs no login and returns hourly, intervention-filtered weight for region 11 ("Nordalpen").
+- **Permission.** I asked HiveWatch and BienenSchweiz in writing on 15.10.2026. **HiveWatch granted permission on 19.10.2026** for this non-commercial project. The terms are listed below.
   - Daily polling of the regional averages and a download of the history from 2019 are allowed for the duration of the project (until about January 2027).
   - Derived regional daily values may be shown in this repository and on the demo page.
   - Conditions are no raw data, no data of single scales, non-commercial use and the source credit "HiveWatch ([www.hivewatch.ch](https://www.hivewatch.ch))".
@@ -70,16 +70,16 @@ flowchart LR
 | [Hiveeyes](https://swarm.hiveeyes.org) | Open API (no key). There are 332 public dashboards, none in Switzerland, and the sampled nodes are inactive (e.g. last data May 2023). It serves raw single-hive weight that still includes interventions | No |
 | [TrachtNet](https://www.bienenkunde.rlp.de) (DLR Rheinland-Pfalz & LWG Bayern) | Public web portal without login. It provides daily **corrected** weight change per region and the **number of scales per day**. Data runs from 2011 and is fresh up to the previous day. Bayern had about 127 scales in 2019, about 250 in 2025 and about 335 in 2026. Switzerland has only 1 to 4 scales | **Yes**, Bayern / Oberbayern |
 
-TrachtNet was also asked on 15.10.2026 (no reply yet). Its adapter is only built if the HiveWatch access breaks.
+TrachtNet was also asked on 15.10.2026 (no reply yet). Its adapter is only built if the HiveWatch access breaks. TrachtNet covers Bavaria, not the Nordalpen, so the model would then have to be retrained for the new region.
 
 Switzerland has no other open hive-scale API. I checked the Romandie, Ticino, Agroscope and opendata.swiss.
 
 ### Weather forecasts from the Open-Meteo Single Runs API
 
-- **Endpoint:** `https://single-runs-api.open-meteo.com/v1/forecast`. It serves every archived run of **ECMWF IFS HRES (9 km)** since 14.03.2024 and needs no key. The data comes from [Open-Meteo](https://open-meteo.com/) under CC BY 4.0.
-- **Run used:** the 00 UTC run for four locations (Lucerne, Schwyz, Altdorf and Sarnen). The values are averaged and aggregated from hourly to daily.
-- **Run completeness:** at 07:46 UTC the same day's 00 UTC run was only partly available (72 of 240 h). The pipeline therefore starts at 08:30 UTC, refuses to write a run with fewer than 240 hours, and polls again every 10 minutes for up to two hours (see [Schedule](#schedule)).
-- **Rate limit:** one request with four locations counts as about four calls (the free tier allows 600 per minute and 5000 per hour). The backfill waits 1.5 s between runs and waits out HTTP 429.
+- **Endpoint.** `https://single-runs-api.open-meteo.com/v1/forecast`. It serves every archived run of **ECMWF IFS HRES (9 km)** since 14.03.2024 and needs no key. The data comes from [Open-Meteo](https://open-meteo.com/) under CC BY 4.0.
+- **Run used.** The 00 UTC run for four locations (Lucerne, Schwyz, Altdorf and Sarnen). The values are averaged and aggregated from hourly to daily.
+- **Run completeness.** At 07:46 UTC the same day's 00 UTC run was only partly available (72 of 240 h). The pipeline therefore starts at 08:30 UTC, refuses to write a run with fewer than 240 hours, and polls again every 10 minutes for up to two hours (see [Schedule](#schedule)).
+- **Rate limit.** One request with four locations counts as about four calls (the free tier allows 600 per minute and 5000 per hour). The backfill waits 1.5 s between runs and waits out HTTP 429.
 
 ## Label & features
 
@@ -90,7 +90,7 @@ One row per forecast day *t0* and horizon *h*. Each row stores **two dates**, th
 - The label is the net weight change of one day, measured as the weight at midnight after the day minus the weight at midnight before it.
 - Days without a midnight value stay empty and are not interpolated.
 - Cross-checked against HiveWatch's own daily deltas (`public/region/11/midnightvalues`), the labels agree within 0.004 kg in September 2026 and within 0.018 kg (mean 0.007 kg) on 17.10.2026. HiveWatch computes those deltas slightly differently. The difference is small next to a daily change of 0.1 to 0.5 kg.
-- A label counts as final only after 2 days, because scales can upload late.
+- A label counts as final only after 2 days, because scales can upload late. Two days is an assumption. The as-of archive will show in MS3 whether it is long enough.
 
 **Features** (one row per issue date *t0* and horizon *h*, defined once in [`compute.py`](src/nectarflow/features/compute.py) and [`config.py`](src/nectarflow/common/config.py) for training and inference)
 
@@ -116,12 +116,12 @@ One row per forecast day *t0* and horizon *h*. Each row stores **two dates**, th
 
 **Split**
 
-- **Training:** forecast days from 14.03.2024 to 22.12.2025.
-- **Test:** the unseen 2026 season.
+- **Training.** Forecast days from 14.03.2024 to 22.12.2025.
+- **Test.** The unseen 2026 season.
 
 ## Feature store
 
-A Hugging Face dataset repo with versioned Parquet files (“poor man's feature store”). The repo id is set by `HF_DATASET_REPO` ([Whalesharkking/nectarflow-features](https://huggingface.co/datasets/Whalesharkking/nectarflow-features)). The pipeline adds a dataset card with sources and licences on its first upload.
+A Hugging Face dataset repo with versioned Parquet files (“poor man's feature store”). The repo id is set by `HF_DATASET_REPO` ([Whalesharkking/nectarflow-features](https://huggingface.co/datasets/Whalesharkking/nectarflow-features)). The pipeline uploads a dataset card with sources, licences and the HiveWatch terms together with every upload.
 
 | Path | Content | Key | Written |
 |---|---|---|---|
@@ -169,7 +169,7 @@ Secrets live only in `.env` (gitignored) locally and in GitHub Secrets in CI. `H
 
 | Workflow | Trigger | What it does |
 |---|---|---|
-| [`feature-daily.yml`](.github/workflows/feature-daily.yml) | daily 08:30 UTC by cron-job.org, fallback cron 14:23 UTC | Polls HiveWatch and Open-Meteo, waits up to 2 h for a complete run, writes features, labels and raw data, pushes to the HF Hub. Fails if today's run never completes |
+| [`feature-daily.yml`](.github/workflows/feature-daily.yml) | daily 08:30 UTC by cron-job.org, fallback cron 14:23 UTC | Polls HiveWatch and Open-Meteo, waits up to 2 h for a complete run, writes features, labels and the raw weather run, pushes to the HF Hub. Fails if today's run never completes |
 | [`backfill.yml`](.github/workflows/backfill.yml) | manual (`workflow_dispatch`) with start, end, force | Same module as the daily run, for a date range |
 | [`ci.yml`](.github/workflows/ci.yml) | push / pull request | Lint (ruff), unit tests, builds and smoke-tests the Docker image, Trivy scan (fails on fixable critical CVEs) |
 | [`render-pdf.yml`](.github/workflows/render-pdf.yml) | push to `docs/` | Renders the Typst docs to PDF |
@@ -195,11 +195,11 @@ uv run ruff check . && uv run ruff format --check .
 
 Tests, lint and format check run without network in CI on every push:
 
-- [`test_labels.py`](tests/test_labels.py) covers midnight-to-midnight label ignores the noon dip, :30 timestamps of 2019-2020, missing midnight stays empty, daylight-saving change, `is_final` after two days, seasonal `jump_flag`
-- [`test_compute.py`](tests/test_compute.py) covers momentum windows end at t0−2 and never see non-final days, a gap makes a window empty, climatology uses only 2019-2023 and wraps around new year, ten rows with the right target dates and no label
-- [`test_weather.py`](tests/test_weather.py) covers incomplete run is rejected, local calendar days, location mean, unit conversion, first hour not counted as zero
-- [`test_pipeline.py`](tests/test_pipeline.py) covers an end-to-end run with fake APIs (backfill layout, incomplete run skipped, idempotent rerun)
-- [`test_store.py`](tests/test_store.py) covers Hub upload in batches with a fake API, files already on the Hub are skipped, local mode never uploads
+- [`test_labels.py`](tests/test_labels.py) checks that the label runs from midnight to midnight and ignores the noon dip. It also covers the half-hour timestamps of 2019-2020, a missing midnight, the daylight-saving change, `is_final` after two days and the seasonal `jump_flag`.
+- [`test_compute.py`](tests/test_compute.py) checks that momentum windows end at t0−2 and never see non-final days, and that a gap makes a window empty. It also checks that the climatology uses only 2019-2023 and wraps around new year, and that each issue date gets ten rows without a label.
+- [`test_weather.py`](tests/test_weather.py) checks that incomplete or missing runs are rejected. It also covers local calendar days, the mean over the locations, the unit conversion and the first hour, which must not count as zero.
+- [`test_pipeline.py`](tests/test_pipeline.py) runs the whole pipeline with fake APIs. It checks the store layout, that an incomplete run is skipped, that a rerun changes nothing and that the as-of archive holds daily labels only.
+- [`test_store.py`](tests/test_store.py) checks the upload to the Hub with a fake API. Written files and the dataset card go up in one commit, files already on the Hub are skipped and local mode never uploads.
 
 ## Repository layout
 
@@ -225,6 +225,6 @@ Milestones are tagged in Git (`ms2`, `ms3`, …).
 
 ## Credits
 
-- **Hive data:** HiveWatch ([www.hivewatch.ch](https://www.hivewatch.ch)), regional averages of the BienenSchweiz scale network ([bienen.ch](https://bienen.ch)), used with permission of 19.10.2026.
-- **Weather forecasts:** [Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0), ECMWF IFS HRES.
-- **Fallback hive data:** TrachtNet Deutschland (DLR Rheinland-Pfalz, LWG Bayern).
+- **Hive data.** HiveWatch ([www.hivewatch.ch](https://www.hivewatch.ch)), regional averages of the BienenSchweiz scale network ([bienen.ch](https://bienen.ch)), used with permission of 19.10.2026.
+- **Weather forecasts.** [Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0), ECMWF IFS HRES.
+- **Fallback hive data.** TrachtNet Deutschland (DLR Rheinland-Pfalz, LWG Bayern).
