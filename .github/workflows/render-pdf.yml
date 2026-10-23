@@ -19,9 +19,10 @@ jobs:
         with:
           typst-version: ^0.15.0   # merman (Mermaid renderer) requires Typst >= 0.15
 
+      # proposal.typ is the frozen MS1 submission, its PDF is not rebuilt.
       - name: Compile *.typ files
         run: |
-          find docs -type f -name '*.typ' -print0 | while IFS= read -r -d '' file; do
+          find docs -type f -name '*.typ' ! -name 'proposal.typ' -print0 | while IFS= read -r -d '' file; do
             typst compile "$file" "${file%.typ}.pdf"
           done
 
