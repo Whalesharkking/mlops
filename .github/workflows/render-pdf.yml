@@ -2,6 +2,7 @@ name: Render Typst PDF
 
 on:
   push:
+    branches: [main] # not on tags, a tag checkout cannot push back
     paths:
       - "docs/**"
       - ".github/workflows/render-pdf.yml"
@@ -14,16 +15,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # full history for the commit time of each source
 
       - uses: typst-community/setup-typst@v5
         with:
           typst-version: ^0.15.0   # merman (Mermaid renderer) requires Typst >= 0.15
 
       # proposal.typ is the frozen MS1 submission, its PDF is not rebuilt.
+      # SOURCE_DATE_EPOCH (last commit of the source) makes the PDF reproducible,
+      # so an unchanged source gives an identical PDF and no bot commit.
       - name: Compile *.typ files
         run: |
           find docs -type f -name '*.typ' ! -name 'proposal.typ' -print0 | while IFS= read -r -d '' file; do
-            typst compile "$file" "${file%.typ}.pdf"
+            SOURCE_DATE_EPOCH=$(git log -1 --format=%ct -- "$file") typst compile "$file" "${file%.typ}.pdf"
           done
 
       - name: Commit rendered PDFs
