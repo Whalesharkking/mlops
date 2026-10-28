@@ -67,15 +67,15 @@ All labels are from the MS1 editorial summary, which covers every concern of bot
   See `src/nectarflow/features/compute.py` (`momentum`), `labels.py` (`is_final`), `pipeline.py` (as-of snapshot in `asof/labels/`).
 ]
 
-#entry("A2", "Changing scale population", "Partly", "97c80d1")[
-  The set of scales does change. HiveWatch shows 364 for Nordalpen today but keeps no history. The effect on the label is small, though. The regional curve runs around 0 kg, not around absolute hive weights of about 60 kg. So HiveWatch most likely averages weight changes, and a scale that joins or leaves shifts the average only by its own share. A single faulty scale is the larger risk. A +20 kg error moves the mean of 364 scales by about 0.05 kg, which is as large as a typical winter day.
+#entry("A2", "Changing scale population", "Changed", "97c80d1")[
+  HiveWatch confirmed by e-mail how the regional value is built. It sums the daily increases of all scales and divides them by the number of scales. Scales below 15 kg are left out. A scale that joins or stops sending therefore does not shift the average. The set itself does change. It grew from about 50 scales in 2019 to 364 today (HiveWatch estimate). A single faulty scale is the remaining risk. A +20 kg error moves the mean of 364 scales by about 0.05 kg, which is as large as a typical winter day.
 
   How I handle it:
   - The current count is stored daily as `n_scales`.
   - Days with an implausible change (more than 2.5 kg in April to July, more than 1.0 kg otherwise) get a `jump_flag` and are excluded from the momentum and the climatology.
   - The climatology uses the median instead of the mean planned in the proposal, so single faulty days have less weight.
 
-  56 of 2813 days since 2019 are flagged, none in the flow season, 21 in January 2021 (snow). Smaller winter noise below 1 kg remains. It matters little, because the model is judged mainly in the flow season and there is no promotion in winter (A3). Still open is using `n_scales` as a signal, because its history only starts on 17.10.2026. See `src/nectarflow/features/labels.py`, `quality/n_scales.parquet`.
+  56 of 2813 days since 2019 are flagged, none in the flow season, 21 in January 2021 (snow). Smaller winter noise below 1 kg remains. It matters little, because the model is judged mainly in the flow season and there is no promotion in winter (A3). For the years before 17.10.2026, HiveWatch suggests a linear estimate of the scale count. In MS3 I test whether it helps, for example to weight the noisier early years less. See `src/nectarflow/features/labels.py`, `quality/n_scales.parquet`.
 ]
 
 #entry("A3", "Champion gate in winter", "Not yet", none)[

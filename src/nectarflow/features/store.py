@@ -59,9 +59,10 @@ A scheduled pipeline writes to this dataset every day. Every commit is one data 
 
 **Hive weight.** The source is HiveWatch (www.hivewatch.ch), with the regional and
 intervention-filtered average of the BienenSchweiz scale network (https://bienen.ch).
-HiveWatch granted permission on 19.10.2026 for this non-commercial study project. The dataset
-contains only derived regional daily values, no raw data and no data of single scales.
-The hive data may not be used commercially.
+HiveWatch granted permission on 19.10.2026 for this non-commercial study project.
+The polling stops when the project ends on 10.01.2027. The dataset contains only derived
+regional daily values, no raw data and no data of single scales. The hive data may not be
+used commercially.
 
 **Weather.** Archived ECMWF IFS HRES forecasts via Open-Meteo (https://open-meteo.com),
 licensed under CC BY 4.0.

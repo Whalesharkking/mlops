@@ -58,8 +58,8 @@ flowchart LR
 - **Source.** The public scale map on [bienen.ch](https://bienen.ch/imkerei/zucht/waagvoelker/), operated by BienenSchweiz with HiveWatch.
 - **Endpoint.** `GET https://app.hivewatch.net/region/11/averages?sensorType=ext_weight&startdate=<epoch ms>&enddate=<epoch ms>`. It needs no login and returns hourly, intervention-filtered weight for region 11 ("Nordalpen").
 - **Permission.** I asked HiveWatch and BienenSchweiz in writing on 15.10.2026. **HiveWatch granted permission on 19.10.2026** for this non-commercial project. The terms are listed below.
-  - Daily polling of the regional averages and a download of the history from 2019 are allowed for the duration of the project (until about January 2027).
-  - Derived regional daily values may be shown in this repository and on the demo page.
+  - Daily polling of the regional averages and a download of the history from 2019 are allowed for the duration of the project (until 10.01.2027). After that, the polling stops.
+  - Derived regional daily values may be shown in this repository and on the demo page. The demo page may stay online after the project ends, without further polling.
   - Conditions are no raw data, no data of single scales, non-commercial use and the source credit "HiveWatch ([www.hivewatch.ch](https://www.hivewatch.ch))".
 
 ### Fallback options for the hive weight (tested 15.10.2026)
@@ -104,7 +104,8 @@ One row per forecast day *t0* and horizon *h*. Each row stores **two dates**, th
 **Data quality (review point A2)**
 
 - `jump_flag` in the label table marks implausible daily changes, meaning more than 2.5 kg in April to July, more than 1.0 kg in the rest of the year. Real flow days reach about 1.7 kg. Larger changes come from snow load, frost or faulty scales. HiveWatch's filter (`filtered=true`) removes beekeeper interventions per scale, but not weather on the scale, so the flag catches what is left in the regional mean. In 2019 to 2026, 56 of 2813 days are flagged, none of them in the flow season (21 in January 2021 alone). Flagged days are removed from `label_clean`, the momentum and the climatology.
-- `n_scales` is the number of scales in the region, read daily from `public/region/11` (`nofScales`, 364 on 17.10.2026) into `quality/n_scales.parquet`. HiveWatch keeps no history, so the series starts on the first polling day.
+- **How HiveWatch averages.** HiveWatch sums the daily increases of all scales and divides them by the number of scales. A scale that joins or stops sending therefore does not shift the average. Scales that weigh less than 15 kg are left out. HiveWatch confirmed this by e-mail.
+- `n_scales` is the number of scales in the region, read daily from `public/region/11` (`nofScales`, 364 on 17.10.2026) into `quality/n_scales.parquet`. HiveWatch keeps no history, so the series starts on the first polling day. For the years before, HiveWatch estimates about 50 scales in 2019 and a linear rise to 364 in 2026.
 
 **Leakage controls**
 
