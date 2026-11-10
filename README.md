@@ -170,7 +170,7 @@ Secrets live only in `.env` (gitignored) locally and in GitHub Secrets in CI. `H
 
 | Workflow | Trigger | What it does |
 |---|---|---|
-| [`feature-daily.yml`](.github/workflows/feature-daily.yml) | daily 08:30 UTC by cron-job.org, fallback cron 14:23 UTC | Polls HiveWatch and Open-Meteo, waits up to 2 h for a complete run, writes features, labels and the raw weather run, pushes to the HF Hub. Fails if today's run never completes |
+| [`feature-daily.yml`](.github/workflows/feature-daily.yml) | daily 08:30 UTC by cron-job.org, or manual | Polls HiveWatch and Open-Meteo, waits up to 2 h for a complete run, writes features, labels and the raw weather run, pushes to the HF Hub. Fails if today's run never completes |
 | [`backfill.yml`](.github/workflows/backfill.yml) | manual (`workflow_dispatch`) with start, end, force | Same module as the daily run, for a date range |
 | [`ci.yml`](.github/workflows/ci.yml) | push / pull request | Lint (ruff), unit tests, builds and smoke-tests the Docker image, Trivy scan (fails on fixable critical CVEs) |
 | [`render-pdf.yml`](.github/workflows/render-pdf.yml) | push to `docs/` | Renders the Typst docs to PDF |
@@ -185,7 +185,7 @@ Authorization: Bearer <fine-grained token with Actions read/write on this repo o
 Body: {"ref": "main"}
 ```
 
-The token is stored only at cron-job.org. The GitHub cron at 14:23 UTC covers days on which cron-job.org does not fire. It stops at once if today's features are already in the store.
+The token is stored only at cron-job.org. There is no GitHub cron as fallback, because a run started many hours late can fall after midnight, before the new weather run exists. If cron-job.org misses a day, the run can be started by hand in the Actions tab. A missed day can also be filled later with the backfill.
 
 ## Tests
 
