@@ -19,7 +19,7 @@ from datetime import date, datetime, timedelta
 import pandas as pd
 import requests
 
-from nectarflow.common.config import TZ, WEATHER_ARCHIVE_START, Settings
+from nectarflow.common.config import FINAL_LAG_DAYS, TZ, WEATHER_ARCHIVE_START, Settings
 from nectarflow.features import store as fs
 from nectarflow.features.compute import build_climatology, build_feature_rows
 from nectarflow.features.hivewatch import fetch_full_history, fetch_n_scales
@@ -37,6 +37,9 @@ class RunReport:
     written: list[date] = field(default_factory=list)
     skipped: list[date] = field(default_factory=list)
     incomplete: list[date] = field(default_factory=list)
+    # False if the label of today - FINAL_LAG_DAYS is missing: the momentum of today's rows
+    # is then empty, the run still writes everything and fails afterwards (MS2 review A1).
+    final_label_present: bool = True
 
 
 def fetch_run_waiting(issue_date: date, session: requests.Session, wait_minutes: int) -> pd.DataFrame:
@@ -52,6 +55,22 @@ def fetch_run_waiting(issue_date: date, session: requests.Session, wait_minutes:
             time.sleep(600)
 
 
+def check_labels(labels: pd.DataFrame, today: date) -> bool:
+    """Log whether yesterday's label exists and return whether the label of t0 - 2 exists.
+
+    The momentum features assume the label of t0 - FINAL_LAG_DAYS is known in the morning.
+    The share of missing t0 - 1 labels over time is reported by ``nectarflow.features.quality``.
+    """
+    known = labels.set_index("date")["label"].dropna().index
+    yesterday = today - timedelta(days=1)
+    final_day = today - timedelta(days=FINAL_LAG_DAYS)
+    log.info("label check: t0-1 (%s) %s", yesterday, "present" if yesterday in known else "missing")
+    if final_day not in known:
+        log.error("label check: t0-%d (%s) is missing, momentum of today is empty", FINAL_LAG_DAYS, final_day)
+        return False
+    return True
+
+
 def ingest_hive(store: fs.FeatureStore, today: date, session: requests.Session) -> pd.DataFrame:
     """Poll HiveWatch, write labels, as-of snapshot and scale count. Returns the labels."""
     series = fetch_full_history(today, session)
@@ -63,15 +82,20 @@ def ingest_hive(store: fs.FeatureStore, today: date, session: requests.Session) 
     store.write(fs.asof_labels_path(today), snapshot.assign(poll_date=today))
 
     # Scale count (review A2). HiveWatch keeps no history, so we build it from today on.
-    n_scales = fetch_n_scales(session)
+    # It is not a feature, so a failed request only leaves today's value empty (MS2 review B1).
+    try:
+        n_scales = fetch_n_scales(session)
+    except (requests.RequestException, ValueError, KeyError, IndexError, TypeError) as err:
+        log.warning("scale count unavailable, stored as empty: %s", err)
+        n_scales = None
     history = store.read(fs.N_SCALES_PATH)
-    row = pd.DataFrame({"poll_date": [today], "n_scales": [n_scales]})
+    row = pd.DataFrame({"poll_date": [today], "n_scales": pd.array([n_scales], dtype="Int64")})
     history = row if history is None else pd.concat([history[history["poll_date"] != today], row])
     store.write(fs.N_SCALES_PATH, history.sort_values("poll_date"))
 
     labelled = labels[labels["label"].notna()]
     log.info(
-        "hive: %d labelled days up to %s, %d of them final, %d jump-flagged, %d scales",
+        "hive: %d labelled days up to %s, %d of them final, %d jump-flagged, %s scales",
         len(labelled),
         labels["date"].max(),
         int(labelled["is_final"].sum()),
@@ -100,13 +124,13 @@ def run(
         log.warning("no archived runs before %s, starting there", WEATHER_ARCHIVE_START)
         start = WEATHER_ARCHIVE_START
 
-    labels = ingest_hive(store, today, http)
-    climatology = build_climatology(labels)
-    store.write(fs.CLIMATOLOGY_PATH, climatology)
-
     span = f"{start}" if start == end else f"{start}..{end}"
     issue_date = start
     try:
+        labels = ingest_hive(store, today, http)
+        report.final_label_present = check_labels(labels, today)
+        climatology = build_climatology(labels)
+        store.write(fs.CLIMATOLOGY_PATH, climatology)
         while issue_date <= end:
             if not force and store.exists(fs.features_path(issue_date)):
                 report.skipped.append(issue_date)
@@ -177,8 +201,9 @@ def main(argv: list[str] | None = None) -> int:
         store = fs.FeatureStore(settings.data_dir, settings.hf_repo, settings.hf_token)
 
     report = run(start, end, store, today=today, force=args.force, wait_minutes=args.wait_minutes)
-    # The daily job must fail loudly if today's run never became complete.
-    if today in report.incomplete:
+    # The daily job must fail loudly if today's run never became complete or the label of
+    # t0 - 2 was missing. Everything that could be computed is already pushed at this point.
+    if today in report.incomplete or not report.final_label_present:
         return 1
     return 0
 

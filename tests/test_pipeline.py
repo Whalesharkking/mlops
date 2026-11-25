@@ -57,3 +57,52 @@ def test_future_end_date_is_rejected(tmp_path, fake_apis):
         pipeline.run(
             today, today + timedelta(days=1), fs.FeatureStore(tmp_path), today=today, request_interval_s=0
         )
+
+
+def test_missing_scale_count_does_not_stop_the_run(tmp_path, fake_apis, monkeypatch):
+    def broken(session=None):
+        raise pipeline.requests.ConnectionError("HiveWatch down")
+
+    monkeypatch.setattr(pipeline, "fetch_n_scales", broken)
+    today = date(2024, 7, 1)
+    report = pipeline.run(today, today, fs.FeatureStore(tmp_path), today=today, request_interval_s=0)
+    assert report.written == [today]
+    n_scales = pd.read_parquet(tmp_path / fs.N_SCALES_PATH)
+    assert n_scales["n_scales"].isna().all()
+
+
+def test_missing_final_label_is_flagged_but_features_are_written(
+    tmp_path, fake_apis, monkeypatch, series_factory
+):
+    # the series ends before t0 - 2, like a scale network that stopped uploading
+    series = series_factory(date(2024, 1, 1), 180, lambda d: 0.1)
+    monkeypatch.setattr(pipeline, "fetch_full_history", lambda today, session=None: series)
+    today = date(2024, 7, 1)
+    report = pipeline.run(today, today, fs.FeatureStore(tmp_path), today=today, request_interval_s=0)
+    assert not report.final_label_present
+    assert report.written == [today]  # the run still writes, then the job fails
+    rows = pd.read_parquet(tmp_path / fs.features_path(today))
+    assert rows["mom_1d"].isna().all()
+
+
+def test_pipeline_pushes_even_if_hivewatch_fails(tmp_path, monkeypatch):
+    pushed = []
+    store = fs.FeatureStore(tmp_path)
+    monkeypatch.setattr(store, "push", lambda message: pushed.append(message))
+
+    def down(today, session=None):
+        raise pipeline.requests.ConnectionError("HiveWatch down")
+
+    monkeypatch.setattr(pipeline, "fetch_full_history", down)
+    with pytest.raises(pipeline.requests.ConnectionError):
+        pipeline.run(date(2024, 7, 1), date(2024, 7, 1), store, today=date(2024, 7, 1))
+    assert len(pushed) == 1  # finally block ran
+
+
+def test_daily_job_fails_when_the_final_label_is_missing(monkeypatch, tmp_path):
+    monkeypatch.setenv("DATA_DIR", str(tmp_path))
+    monkeypatch.delenv("HF_DATASET_REPO", raising=False)
+    monkeypatch.setattr(pipeline, "run", lambda *a, **k: pipeline.RunReport(final_label_present=False))
+    assert pipeline.main(["--local"]) == 1
+    monkeypatch.setattr(pipeline, "run", lambda *a, **k: pipeline.RunReport())
+    assert pipeline.main(["--local"]) == 0

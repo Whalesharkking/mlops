@@ -17,7 +17,7 @@ from datetime import date
 from pathlib import Path
 
 import pandas as pd
-from huggingface_hub import HfApi, hf_hub_download
+from huggingface_hub import HfApi, hf_hub_download, snapshot_download
 from huggingface_hub.errors import EntryNotFoundError, RepositoryNotFoundError
 
 log = logging.getLogger(__name__)
@@ -69,6 +69,21 @@ licensed under CC BY 4.0.
 """
 
 
+def download_revision(
+    repo_id: str, revision: str, cache_dir: Path, patterns: list[str], token: str | None = None
+) -> tuple[Path, str]:
+    """Read-only download of some files at one dataset revision. Returns the root and the commit id.
+
+    A branch name such as ``main`` is first resolved to the commit it points to now, and
+    exactly that commit is downloaded, so a run can log and reproduce its data version.
+    """
+    sha = HfApi(token=token).dataset_info(repo_id, revision=revision).sha
+    root = snapshot_download(
+        repo_id, repo_type="dataset", revision=sha, allow_patterns=patterns, cache_dir=cache_dir, token=token
+    )
+    return Path(root), sha
+
+
 class FeatureStore:
     """Writes locally first; ``push`` uploads the written files in one Hub commit."""
 
@@ -96,6 +111,9 @@ class FeatureStore:
             return True
         if not self.remote:
             return False
+        # The remote file list is read once per run (MS2 review E5). This is safe because every
+        # writer (daily run, backfill) is in the concurrency group "feature-store", so no other
+        # job adds files during a run, and files this run writes are found locally first.
         if self._remote_files is None:
             try:
                 self._remote_files = set(self.api.list_repo_files(self.repo_id, repo_type="dataset"))
