@@ -41,53 +41,53 @@
 
 All labels are from the MS2 editorial summary, which covers every point of both reviews. The Must point comes first.
 
-#entry("E1", "Training-side reader with a pinned revision", "Changed", "training/data.py, features/store.py")[
+#entry("E1", "Training-side reader with a pinned revision", "Changed", "5435ebf, 57466b1, training/data.py, features/store.py")[
   `download()` resolves a branch to its commit and fetches only the feature files, labels and scale counts of one Hub revision and returns its commit id, which every run logs. `load_frame()` joins `labels.parquet` on `target_date` and keeps only `is_final` rows. Tests check the join and the revision.
 ]
 
-#entry("B1", "A HiveWatch error stops the whole daily run (also B2)", "Changed", "features/hivewatch.py, pipeline.py")[
+#entry("B1", "A HiveWatch error stops the whole daily run (also B2)", "Changed", "57466b1, features/hivewatch.py, pipeline.py")[
   Both HiveWatch calls now retry with backoff on connection errors, 429 and 5xx, like `weather.fetch_run`. A failed scale count logs a warning and leaves the day's value empty. `ingest_hive()` now runs inside the `try/finally`, so what was computed is always uploaded. The 14:23 UTC fallback no longer exists, it was removed after MS2 because a late start could fall after midnight.
 ]
 
-#entry("B3", "The success criterion cannot be reproduced from the repo", "Changed", "training/evaluate.py")[
+#entry("B3", "The success criterion cannot be reproduced from the repo", "Changed", "5435ebf, training/evaluate.py")[
   `python -m nectarflow.training.evaluate --until <date> --revision <sha>` prints the MAE of both baselines and the row count per horizon. `train.py` uses the same function for the model, so model and baselines come from one script. All predictors are scored on the same rows. The old numbers in the text (0.29 and 0.31) came from a manual count on fewer rows and are replaced by this table. On 2026 up to 23.11. the baselines are 0.25 (climatology) and 0.27 (persistence, $h = 1$). They differ from the proposal (0.24 and 0.32) because persistence now uses only final days (MS1 A1), the climatology uses the median instead of the mean (MS1 A2), and the test now covers 2026 up to November.
 ]
 
-#entry("E2", "Champion gate and time-ordered CV first", "Changed", "training/cv.py, gate.py")[
+#entry("E2", "Champion gate and time-ordered CV first", "Changed", "5435ebf, training/cv.py, gate.py")[
   Both exist and are tested, and the first model was logged only after them. Details under MS1 A3, B1 and B2 below.
 ]
 
-#entry("A1", "The two-day label margin is thin, make the pipeline watch it (also E3)", "Changed", "pipeline.py, features/quality.py")[
+#entry("A1", "The two-day label margin is thin, make the pipeline watch it (also E3)", "Changed", "57466b1, pipeline.py, features/quality.py")[
   My MS2 figure "2 of 7 days" was too optimistic. Reviewer A is right. From 17.10. to 25.11.2026, yesterday's label was missing at poll time on 35 of 40 days, and on every day since 22.10. The label of $t_0 - 2$ was always there, and 0 of 68 labels changed after first appearing (largest change 0.0000 kg). The daily run now checks the label of $t_0 - 2$. If it is missing, the run still writes the features with empty momentum and uploads them, then it fails so the gap is seen. `quality.py` prints the weekly share of missing labels and runs in every weekly training job.
 ]
 
-#entry("A2", "Day h = 1 is built from fewer hours", "Changed", "common/config.py")[
+#entry("A2", "Day h = 1 is built from fewer hours", "Changed", "5435ebf, common/config.py")[
   `n_hours` is now in `FEATURE_COLUMNS`. It was already stored, so no feature file had to be rebuilt.
 ]
 
-#entry("E4", "Decide what n_scales is", "Rejected", "training/data.py")[
+#entry("E4", "Decide what n_scales is", "Rejected", "5435ebf, training/data.py")[
   Not a feature, because it would be a linear guess in training and a real count in serving. I tested it as a sample weight, as promised in MS2. The CV got worse (MAE 0.188 with the weight, 0.184 without), so it is not used. The weighted run reuses the parameters searched without the weight, which slightly favours "no weight". The test runs again in every evaluation run. The daily count stays in the store as a monitoring signal for MS4.
 ]
 
-#entry("A3", "The exact uv pin blocks newer uv versions", "Changed", "pyproject.toml, README.md")[
+#entry("A3", "The exact uv pin blocks newer uv versions", "Changed", "8c3e7de, 73b7218, pyproject.toml, README.md")[
   The pin is now the range `>=0.13.7,<0.14`. I moved to 0.13, because uv 0.13 is the current version and the lock file is written with it. Docker uses 0.13.7. The README describes in four steps how to set up the cron-job.org trigger again.
 ]
 
-#entry("E5", "Comment the cache invariant", "Changed", "features/store.py")[
+#entry("E5", "Comment the cache invariant", "Changed", "57466b1, features/store.py")[
   `FeatureStore.exists()` now explains why reading the file list once is safe. Daily run and backfill share the concurrency group `feature-store`.
 ]
 
 *Open points from MS1*, answered "Not yet" in MS2 and done now.
 
-#entry("MS1 A3", "Champion gate in winter", "Changed", "training/gate.py")[
+#entry("MS1 A3", "Champion gate in winter", "Changed", "5435ebf, training/gate.py")[
   The gate compares challenger, champion and both baselines on the last eight weeks, only on rows with a target in March to September. It promotes only if the challenger beats the champion by 0.01 kg/day and both baselines, if the holdout ends in March to September and if it has at least 200 season rows. So nothing is promoted from October to February, as promised. The gate also refuses if the champion was trained on a holdout day. The first champion comes from the evaluation protocol if it beats both baselines on the 2026 season. A retrain on the data of 25.11. was not promoted (off season). The CV cannot check the margin of 0.01 kg/day directly, as promised in MS2, because the fold MAEs range from 0.08 to 0.30 with the season. The margin is about 4 % of the season MAE of the model (0.230), and I keep it.
 ]
 
-#entry("MS1 B1", "Little training data for the later horizons", "Changed", "README.md (Result)")[
+#entry("MS1 B1", "Little training data for the later horizons", "Changed", "5435ebf, 73b7218, README.md (Result)")[
   The MAE is reported per horizon with its row count (311 to 320 test rows, about 614 training rows per horizon). Even $h = 6…10$ beat climatology clearly (0.203 to 0.227 against 0.25), so I do not add the GFS archive.
 ]
 
-#entry("MS1 B2", "Time-ordered cross-validation for tuning", "Changed", "training/cv.py")[
+#entry("MS1 B2", "Time-ordered cross-validation for tuning", "Changed", "5435ebf, training/cv.py")[
   Folds are built on issue dates, one validation block per month of April to September 2025. Training rows end 10 days before a block, so no target is shared, and all ten rows of an issue date stay in one fold. The search uses only this CV, 2026 is used once for the final test.
 ]
 
