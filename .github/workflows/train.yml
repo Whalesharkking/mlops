@@ -1,0 +1,62 @@
+name: Training pipeline (weekly retrain)
+
+# Weekly retrain from scratch on the newest dataset revision. The gate decides whether the
+# challenger becomes champion. A late start of the GitHub cron does no harm here.
+# "eval" (manual only) reruns the search and the 2026 test and sets the first champion.
+on:
+  schedule:
+    - cron: "0 12 * * 1" # Monday 12:00 UTC, after the daily feature run
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "retrain (weekly protocol) or eval (search, test on 2026, first champion)"
+        type: choice
+        options: [retrain, eval]
+        default: retrain
+      revision:
+        description: "dataset revision (commit id or main)"
+        default: main
+
+concurrency:
+  group: training
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      HF_DATASET_REPO: ${{ vars.HF_DATASET_REPO }} # public dataset, training only reads it
+      WANDB_API_KEY: ${{ secrets.WANDB_API_KEY }}
+      # inputs are passed as variables, never pasted into the script (no injection)
+      MODE: ${{ inputs.mode || 'retrain' }}
+      REVISION: ${{ inputs.revision || 'main' }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v10.3.0
+        with:
+          enable-cache: true
+
+      - name: Install locked dependencies
+        run: uv sync --locked --no-dev
+
+      - name: Train, evaluate, register
+        run: uv run --no-dev python -m nectarflow.training.train --mode "$MODE" --revision "$REVISION"
+
+      # eval writes new frozen parameters, keep them so they can be committed
+      - name: Keep the model config of an eval run
+        if: ${{ env.MODE == 'eval' }}
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: model-config
+          path: configs/model.json
+
+      # weekly share of labels still missing at poll time (MS2 review A1), never blocks training
+      - name: Label quality report
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        run: uv run --no-dev python -m nectarflow.features.quality --revision "$REVISION"

@@ -16,6 +16,7 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
 
@@ -36,6 +37,7 @@ jobs:
 
   docker:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
 
@@ -51,7 +53,11 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Smoke test
-        run: docker run --rm nectarflow:ci --help
+        run: |
+          docker run --rm nectarflow:ci --help
+          docker run --rm --entrypoint python nectarflow:ci -m nectarflow.training.train --help
+          docker run --rm --entrypoint python nectarflow:ci -c \
+            "from pathlib import Path; from nectarflow.training.train import ModelConfig; ModelConfig.load(Path('configs/model.json'))"
 
       # Fail on critical CVEs that already have a fix (unfixable base-image CVEs would
       # keep CI red without anything to do). Pinned to the commit of v0.36.0.
