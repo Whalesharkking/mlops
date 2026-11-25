@@ -1,0 +1,16 @@
+{
+  "params": {
+    "learning_rate": 0.010641793015406891,
+    "num_leaves": 50,
+    "min_data_in_leaf": 21,
+    "feature_fraction": 0.7594510109312678,
+    "bagging_fraction": 0.6092676302265375,
+    "lambda_l2": 0.23097183112953812,
+    "bagging_freq": 1
+  },
+  "num_boost_round": 275,
+  "use_scale_weight": false,
+  "cv_mae": 0.1842,
+  "data_revision": "cae98fabe29d48c27b70249432dca552062ae6af",
+  "trials": 50
+}
