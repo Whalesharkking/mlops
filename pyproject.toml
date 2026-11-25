@@ -6,9 +6,13 @@ readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
     "huggingface-hub",
+    "lightgbm>=4.6",
+    "numpy>=2",
+    "optuna>=4.5",
     "pandas",
     "pyarrow",
     "requests",
+    "wandb>=0.22",
 ]
 
 [dependency-groups]
@@ -18,13 +22,15 @@ dev = [
 ]
 
 [build-system]
-requires = ["uv_build>=0.12,<0.13"]
+requires = ["uv_build>=0.13,<0.14"]
 build-backend = "uv_build"
 
 [tool.uv]
-# One uv version everywhere: locally, in GitHub Actions (setup-uv reads this) and in the
-# Dockerfile (COPY --from=ghcr.io/astral-sh/uv:0.12.24).
-required-version = "==0.12.24"
+# One uv minor version everywhere (review A3): locally, in GitHub Actions (setup-uv reads
+# this) and in the Dockerfile (COPY --from=ghcr.io/astral-sh/uv:0.13.7). Patch updates are fine.
+required-version = ">=0.13.7,<0.14"
+# Supply chain: only resolve releases that are at least two weeks old.
+exclude-newer = "14 days"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
